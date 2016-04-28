@@ -3,42 +3,53 @@ attributes:
     restrictions:
       - condition: "settings:lma_infrastructure_alerting == null"
         action: "hide"
-        message: "This plugin requires Zabbix plugin"
+        message: "This plugin requires lma_infrasturuture_alerting plugin"
         strict: false
-
-  community:
-    value: "public"
-    label: "SNMP community"
-    description: "SNMP community for traps authorization"
-    weight: 10
-    type: "password"
-
 
   sfdc_client_id:
     value: ''
     label: 'SalesForce Client ID. Should be provided by SFDC administartors, looks like long random string. (Example of SFDC Client ID: 3MVG9Z8h6S4Gr6GHqE6yb1wKRc1j7KKpgAgwDFTuvsTdS9VrhJRwv2.qjPb6dhC5v4UP5BMEKbE9zkMA_5XB)'
+    weight: 60
+    type: "text"
 
   sfdc_client_secret:
     value: ''
     label: 'SalesForce Client Secret. Should be provided by SFDC administartors, looks like string contains only digits. (Example of SFDC Client Secret: 5523245751213467826)'
+    weight: 65
+    type: "text"
+
+
+  sfdc_auth_url:
+    value: ''
+    label: 'SalesForce auth url, looks like https://some-domain.my.salesforce.com'
+    weight: 70
+    type: "text"
+
 
   sfdc_username:
     value: ''
     label: 'SalesForce UserName'
+    weight: 75
+    type: "text"
+
 
   sfdc_password:
     value: ''
     label: 'SalesForce password'
+    weight: 80
+    type: "text"
 
-  sfdc_auth_url:
-    value: ''
-    label: 'SalesForce auth url, looks like 'https://some-domain.my.salesforce.com''
 
   environment:
     value: ''
     label: 'Cloud ID, sould be provided by SFDC administrators. Example: a3X990000009QP8MEA'
+    weight: 85
+    type: "text"
+
 
   sfdc_organization_id:
     value: ''
     label: 'SFDC Organization ID should be provided by SFDC administartors. Example: 00F370000006c1e'
+    weight: 90
+    type: "text"
 
