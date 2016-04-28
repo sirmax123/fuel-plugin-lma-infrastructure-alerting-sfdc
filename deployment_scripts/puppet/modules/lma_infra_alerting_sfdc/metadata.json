@@ -1,0 +1,20 @@
+{
+    "name": "lma_infra_alerting_sfdc",
+    "version": "0.0.1",
+    "author": "Max MAzur <mmaxur@mirantis.com>",
+    "summary": "Puppet module for alerting to SalesForce",
+    "license": "Apache-2.0",
+    "source": "git://git.openstack.org/cgit/openstack/fuel-plugin-infrastructure-alerting.git",
+    "project_page": "none",
+    "issues_url": "none",
+    "operatingsystem_support": [
+        {
+            "operatingsystem": "Ubuntu",
+            "operatingsystemrelease": ["14.04"]
+        }
+    ],
+    "description": "Puppet module for configuring ",
+    "dependencies": [
+        {"name": "puppetlabs/stdlib", "version_requirement": "4.x"}
+    ]
+}

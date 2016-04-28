@@ -1,34 +1,20 @@
-# Plugin name
 name: fuel-plugin-lma-infrastructure-alerting-sfdc
-# Human-readable name for your plugin
 title: Title for fuel-plugin-lma-infrastructure-alerting-sfdc plugin
-# Plugin version
 version: '1.0.0'
-# Description
-description: Please describe your plugin here
-# Required fuel version
-fuel_version: ['8.0']
-# Specify license of your plugin
+description: Add SalesForce integration to StackLight (LMA) Alerting plugin
+fuel_version: ['7.0']
 licenses: ['Apache License Version 2.0']
-# Specify author or company name
-authors: ['Specify author or company name']
-# A link to the plugin's page
-homepage: 'https://github.com/openstack/fuel-plugins'
-# Specify a group which your plugin implements, possible options:
-# network, storage, storage::cinder, storage::glance, hypervisor,
-# equipment
-groups: []
-# Change `false` to `true` if the plugin can be installed in the environment
-# after the deployment.
+authors: ['Mirantis mmaxur@mirantis.com']
+homepage: 'https://github.com/sirmax123/fuel-plugin-lma-infrastructure-alerting-sfdc'
+
+groups: ['monitoring']
 is_hotpluggable: false
 
-# The plugin is compatible with releases in the list
 releases:
   - os: ubuntu
-    version: liberty-8.0
+    version: 2015.1.0-7.0
     mode: ['ha']
     deployment_scripts_path: deployment_scripts/
     repository_path: repositories/ubuntu
 
-# Version of plugin package
-package_version: '4.0.0'
+package_version: '3.0.0'
