@@ -1,7 +1,7 @@
 attributes:
   metadata:
     restrictions:
-      - condition: "settings:lma_infrastructure_alerting == null"
+      - condition: "settings:lma_infrastructure_alerting == null or settings:lma_infrastructure_alerting.metadata.enabled == false "
         action: "hide"
         message: "This plugin requires lma_infrasturuture_alerting plugin"
         strict: false
