@@ -1,4 +1,4 @@
-fuel-plugin-lma-infrastructure-alerting-sfdc
+lma-infrastructure-alerting-sfdc
 ============
 
 Plugin description

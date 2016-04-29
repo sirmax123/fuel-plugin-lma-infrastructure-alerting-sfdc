@@ -1,4 +1,4 @@
-name: fuel-plugin-lma-infrastructure-alerting-sfdc
+name: lma-infrastructure-alerting-sfdc
 title: SalesForce notifications for StackLight (LMA)
 version: '1.0.0'
 description: Add SalesForce integration to StackLight (LMA) Alerting plugin
