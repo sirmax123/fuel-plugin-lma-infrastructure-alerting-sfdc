@@ -10,15 +10,15 @@ define command{
                 Additional Info:\n \
                 $SERVICEOUTPUT$\n \
                 $LONGSERVICEOUTPUT$\n\n \
-                Comment: $NOTIFICATIONCOMMENT$"| /usr/lib/nagios/plugins/sfdc/sfdc_nagios.py \
-                               -c /usr/lib/nagios/plugins/sfdc/sfdc_nagios.yaml \
+                Comment: $NOTIFICATIONCOMMENT$"| <%= @plugin_file %> \
+                               -c  <%= @plugin_config_file %> \
                                --long_date_time "$LONGDATETIME$" \
                                --description "-" \
                                --host_name "$HOSTNAME$" \
                                --service_description "$SERVICEDESC$" \
                                --notification_type "$NOTIFICATIONTYPE$" \
                                --debug \
-                               --log_file "/var/log/nagios_to_sfdc.log"
+                               --log_file "<%= @plugin_log_file %>"
         }
 
 define command{
@@ -29,14 +29,14 @@ define command{
                 Host: $HOSTALIAS$ (Address: $HOSTADDRESS$)\n \
                 Additional Info:\n \
                 $HOSTOUTPUT$\n$LONGHOSTOUTPUT$\n\n \
-                Comment: $NOTIFICATIONCOMMENT$"| /usr/lib/nagios/plugins/sfdc/sfdc_nagios.py \
-                               -c /usr/lib/nagios/plugins/sfdc/sfdc_nagios.yaml \
+                Comment: $NOTIFICATIONCOMMENT$"|  <%= @plugin_file %>  \
+                               -c  <%= @plugin_config_file %> \
                                --long_date_time "$LONGDATETIME$" \
                                --description "-" \
                                --host_name "$HOSTNAME$" \
                                --notification_type "$NOTIFICATIONTYPE$" \
                                --debug \
-                               --log_file "/var/log/nagios_to_sfdc.log"
+                               --log_file "<%= @plugin_log_file %>"
         }
 
 
