@@ -3,7 +3,7 @@ import json
 import xml.dom.minidom
 import logging
 
-requests.packages.urllib3.disable_warnings()
+#requests.packages.urllib3.disable_warnings()
 
 LOG = logging.getLogger()
 
@@ -125,10 +125,10 @@ class Client(object):
             return False
 
     def create_mos_alert(self, data):
-        return self.post('/services/data/v36.0/sobjects/MOS_Alerts__c', json=data)
+        return self.post('/services/data/v36.0/sobjects/MOS_Alerts__c', data=json.dumps(data), headers={"content-type": "application/json"})
 
     def create_mos_alert_comment(self, data):
-        return self.post('/services/data/v36.0/sobjects/MOS_Alert_Comment__c', json=data)
+        return self.post('/services/data/v36.0/sobjects/MOS_Alert_Comment__c', data=json.dumps(data), headers={"content-type": "application/json"})
 
     def get_mos_alert_comment(self, id):
         return self.get('/services/data/v36.0/sobjects/MOS_Alert_Comment__c/{}'.format(id))
@@ -139,11 +139,11 @@ class Client(object):
 
 
     def create_case(self, data):
-        return self.post('/services/data/v36.0/sobjects/Case', json=data).json()
+        return self.post('/services/data/v36.0/sobjects/Case', data=json.dumps(data), headers={"content-type": "application/json"}).json()
 
 
     def create_ticket(self, data):
-        return self.post('/services/data/v36.0/sobjects/Case', json=data).json()
+        return self.post('/services/data/v36.0/sobjects/Case', data=json.dumps(data), headers={"content-type": "application/json"}).json()
 
     def get_case(self, id):
         return self.get('/services/data/v36.0/sobjects/Case/{}'.format(id))
@@ -156,17 +156,17 @@ class Client(object):
 
 
     def update_ticket(self, id, data):
-        return self.patch('/services/data/v36.0/sobjects/proxyTicket__c/{}'.format(id), json=data)
+        return self.patch('/services/data/v36.0/sobjects/proxyTicket__c/{}'.format(id), data=json.dumps(data), headers={"content-type": "application/json"})
 
     def update_mos_alert(self, id, data):
-        return self.patch('/services/data/v36.0/sobjects/MOS_Alerts__c/{}'.format(id), json=data)
+        return self.patch('/services/data/v36.0/sobjects/MOS_Alerts__c/{}'.format(id), data=json.dumps(data), headers={"content-type": "application/json"})
 
 
     def update_comment(self, id, data):
-        return self.patch('/services/data/v36.0/sobjects/proxyTicketComment__c/{}'.format(id), json=data)
+        return self.patch('/services/data/v36.0/sobjects/proxyTicketComment__c/{}'.format(id), data=json.dumps(data), headers={"content-type": "application/json"})
 
     def create_ticket_comment(self, data):
-        return self.post('/services/data/v36.0/sobjects/proxyTicketComment__c', json=data).json()
+        return self.post('/services/data/v36.0/sobjects/proxyTicketComment__c', data=json.dumps(data), headers={"content-type": "application/json"}).json()
 
     def environment(self, id):
         return self.get('/services/data/v36.0/sobjects/Environment__c/{}'.format(id)).json()
