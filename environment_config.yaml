@@ -11,12 +11,16 @@ attributes:
     label: 'SalesForce Client ID. Should be provided by SFDC administartors, looks like long random string. (Example of SFDC Client ID: 3MVG9Z8h6S4Gr6GHqE6yb1wKRc1j7KKpgAgwDFTuvsTdS9VrhJRwv2.qjPb6dhC5v4UP5BMEKbE9zkMA_5XB)'
     weight: 60
     type: "text"
+    regex: &not_empty_parameter
+      source: '\S'
+      error: "Invalid value"
 
   sfdc_client_secret:
     value: ''
     label: 'SalesForce Client Secret. Should be provided by SFDC administartors, looks like string contains only digits. (Example of SFDC Client Secret: 5523245751213467826)'
     weight: 65
     type: "text"
+    regex: *not_empty_parameter
 
 
   sfdc_auth_url:
@@ -24,6 +28,7 @@ attributes:
     label: 'SalesForce auth url, looks like https://some-domain.my.salesforce.com'
     weight: 70
     type: "text"
+    regex: *not_empty_parameter
 
 
   sfdc_username:
@@ -31,13 +36,15 @@ attributes:
     label: 'SalesForce UserName'
     weight: 75
     type: "text"
+    regex: *not_empty_parameter
 
 
   sfdc_password:
     value: ''
     label: 'SalesForce password'
     weight: 80
-    type: "text"
+    type: "password"
+    regex: *not_empty_parameter
 
 
   environment:
@@ -45,6 +52,7 @@ attributes:
     label: 'Cloud ID, sould be provided by SFDC administrators. Example: a3X990000009QP8MEA'
     weight: 85
     type: "text"
+    regex: *not_empty_parameter
 
 
   sfdc_organization_id:
@@ -52,4 +60,5 @@ attributes:
     label: 'SFDC Organization ID should be provided by SFDC administartors. Example: 00F370000006c1e'
     weight: 90
     type: "text"
+    regex: *not_empty_parameter
 

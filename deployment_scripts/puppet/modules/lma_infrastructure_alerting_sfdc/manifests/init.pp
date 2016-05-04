@@ -17,13 +17,13 @@
 #
 
 class lma_infrastructure_alerting_sfdc (
-  $auth_url                   =  'http://force.com',
-  $client_id                  =  'sfdc_client_id',
-  $client_secret              =  'sfdc_client_secret',
-  $username                   =  'sfdc_username',
-  $password                   =  'sfdc_password',
-  $env                        =  'environment',
-  $organization_id            =  'sfdc_organization_id',
+  $auth_url,
+  $client_id,
+  $client_secret,
+  $username,
+  $password,
+  $env,
+  $organization_id,
   $plugin_dir                 =  '/usr/lib/nagios/plugins/sfdc/',
   $plugin_lib_file            =  '/usr/lib/nagios/plugins/sfdc/salesforce.py',
   $plugin_file                =  '/usr/lib/nagios/plugins/sfdc/sfdc_nagios.py',
