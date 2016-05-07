@@ -1,0 +1,9 @@
+<%= @plugin_log_file %> {
+	daily
+	missingok
+	rotate 7
+	compress
+	delaycompress
+	notifempty
+	create 640 nagios nagios
+}

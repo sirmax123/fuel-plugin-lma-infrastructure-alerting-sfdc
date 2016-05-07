@@ -1,0 +1,20 @@
+#!/bin/bash -x
+
+LONGDATETIME=`date`
+
+IP_ADDRESS=`/sbin/ip ro get 8.8.8.8 |  awk '(/src/) { print $7}'`
+HOSTNAME="00-global-clusters-env1"
+SERVICEDESC="nova"
+NOTIFICATIONTYPE="RECOVERY"
+
+/usr/bin/printf "%b" "Notification Type: RECOVERY \n State: OK\n\n Date/Time: ${LONGDATETIME} \n Host: 00-global-clusters-env1 (Address: ${IP_ADDRESS})\n Service: nova \n Additional Info:\n nova+OKAY%5Cnno+details\n \n\n Comment: TEST_ALERT_FOR_TESTING_ONLY" \
+| <%= @plugin_file %> \
+                               -c  <%= @plugin_config_file %> \
+                               --long_date_time "$LONGDATETIME" \
+                               --description "-" \
+                               --host_name "$HOSTNAME" \
+                               --service_description "$SERVICEDESC" \
+                               --notification_type "$NOTIFICATIONTYPE" \
+                               --debug \
+                               --log_file "<%= @plugin_log_file %>"
+

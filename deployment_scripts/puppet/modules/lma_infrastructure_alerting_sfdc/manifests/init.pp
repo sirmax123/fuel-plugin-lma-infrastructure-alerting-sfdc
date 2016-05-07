@@ -32,31 +32,41 @@ class lma_infrastructure_alerting_sfdc (
   $plugin_log_file            =  '/var/log/nagios_to_sfdc.log',
   $nagios_service_name        =  'nagios3',
   $nagios_contacts_file       =  '/etc/nagios3/conf.d/sfdc_contacts.cfg',
-  $nagios_commands_file       =  '/etc/nagios3/conf.d/sfdc_commands.cfg'
+  $nagios_commands_file       =  '/etc/nagios3/conf.d/sfdc_commands.cfg',
+  $logrotate_config           =  '/etc/logrotate.d/sfdc_nagios'
+
 )  {
 
-  notify {'lma_infrastructure_alerting_sfdc start': }
+  notify {"lma_infrastructure_alerting_sfdc start": }
 
   service { $nagios_service_name:
-    ensure => running,
-    enable => true,
-  }
+      ensure  => running,
+      enable  => $service_enable,
+    }
 
 
 # Create dir for plugin
   file { $plugin_dir:
     ensure => directory,
-    mode   => '0644',
-    owner  => 'nagios',
-    notify => Service[$nagios_service_name],
+    mode =>   "644",
+    owner =>  "nagios",
+    notify  => Service[$nagios_service_name],
   } ->
 
   file { $plugin_lib_file:
     ensure => file,
     source => 'puppet:///modules/lma_infrastructure_alerting_sfdc/salesforce.py',
     mode   => '0755',
-    owner  => 'nagios',
-    notify => Service[$nagios_service_name],
+    owner =>  "nagios",
+    notify  => Service[$nagios_service_name],
+  } ->
+
+  file { "$plugin_dir/test_alert.sh":
+    ensure  => file,
+    content => template('lma_infrastructure_alerting_sfdc/test_alert.sh.erb'),
+    mode    => '0755',
+    owner =>  "nagios",
+    notify  => Service[$nagios_service_name],
   } ->
 
 
@@ -64,33 +74,50 @@ class lma_infrastructure_alerting_sfdc (
     ensure => file,
     source => 'puppet:///modules/lma_infrastructure_alerting_sfdc/sfdc_nagios.py',
     mode   => '0755',
-    owner  => 'nagios',
-    notify => Service[$nagios_service_name],
+    owner =>  "nagios",
+    notify  => Service[$nagios_service_name],
   } ->
 
   file { $plugin_config_file:
     ensure  => file,
     content => template('lma_infrastructure_alerting_sfdc/sfdc_nagios.yaml.erb'),
     mode    => '0644',
-    owner   => 'nagios',
+    owner =>  "nagios",
     notify  => Service[$nagios_service_name],
   } ->
 
-  file { $nagios_contacts_file:
-    ensure => file,
-    source => 'puppet:///modules/lma_infrastructure_alerting_sfdc/sfdc_contacts.cfg',
-    mode   => '0644',
-    owner  => 'nagios',
-    notify => Service[$nagios_service_name],
+
+  file { $logrotate_config:
+    ensure  => file,
+    content => template('lma_infrastructure_alerting_sfdc/sfdc_nagios.yaml.erb'),
+    mode    => '0644',
+    owner =>  "root",
   } ->
+
+
+  file { $nagios_contacts_file:
+    ensure  => file,
+    source => 'puppet:///modules/lma_infrastructure_alerting_sfdc/sfdc_contacts.cfg',
+    mode    => '0644',
+    owner =>  "nagios",
+    notify  => Service[$nagios_service_name],
+  } ->
+
+  file { $plugin_log_file:
+    ensure  => file,
+    mode    => '0644',
+    owner =>  "nagios",
+    notify  => Service[$nagios_service_name],
+  } ->
+
 
   file { $nagios_commands_file:
     ensure  => file,
     content => template('lma_infrastructure_alerting_sfdc/sfdc_commands.cfg.erb'),
     mode    => '0644',
-    owner   => 'nagios',
+    owner =>  "nagios",
     notify  => Service[$nagios_service_name],
   }
 
-  notify {'lma_infrastructure_alerting_sfdc end': }
+  notify {"lma_infrastructure_alerting_sfdc end": }
 }
