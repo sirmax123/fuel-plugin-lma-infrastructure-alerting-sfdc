@@ -39,7 +39,7 @@ class lma_infrastructure_alerting_sfdc (
 
   service { $nagios_service_name:
       ensure => running,
-      enable => True,
+      enable => true,
     }
 
 
