@@ -87,9 +87,18 @@ def main():
     if  args.description == '-':
         args.description = ''.join(sys.stdin.readlines())
 
+# Notification types are mapped to priority
+    priority = {
+        'OK':        'Informational',
+        'RECOVERY':  'Informational',
+        'UNCKNOWN': 'Unknown',
+        'WARNING':  'Warning',
+        'CRITICAL': 'Critical',
+        }
+
 
     nagios_data = {
-        'notification_type': args.notification_type,
+        'notification_type': priority[str(args.notification_type).upper()],
         'description': args.description,
         'host_name': args.host_name,
         'long_date_time': args.long_date_time,
@@ -135,6 +144,7 @@ def main():
         'Payload__c':  json.dumps(nagios_data),
         'Alert_ID__c': Alert_ID,
         'Cloud__c':    environment,
+        'Priority__c': nagios_data['notification_type']
         }
 
     comment_data = {
