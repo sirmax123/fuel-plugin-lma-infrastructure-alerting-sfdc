@@ -177,6 +177,7 @@ def main():
         'MOS_Alert_Name__c': "MA-0" ,
         'MosAlertId__c':     "-1",
         'Cloud__c':          environment,
+        'Priority__c':       nagios_data['state'],
         }
 
 
