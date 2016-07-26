@@ -71,6 +71,10 @@ class OAuth2(object):
         response = requests.post(soap_url,
                              login_soap_request_body,
                              headers=login_soap_request_headers)
+        LOG.debug(response)
+        LOG.debug(response.status_code)
+        LOG.debug(response.text)
+
 
         session_id = self.getUniqueElementValueFromXmlString(response.content, 'sessionId')
         server_url = self.getUniqueElementValueFromXmlString(response.content, 'serverUrl')

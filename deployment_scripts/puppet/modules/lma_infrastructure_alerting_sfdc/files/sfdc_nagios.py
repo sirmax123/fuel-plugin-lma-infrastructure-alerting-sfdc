@@ -43,6 +43,9 @@ def main():
     parser.add_argument('--notification_type',  required=True,
                            help='Notification type (PROBLEM|RECOVERY|CUSTOM). Nagios variable - $NOTIFICATIONTYPE$" ')
 
+    parser.add_argument('--state',  required=True,
+                           help='Service ot Host (OK|WARNING|CRITICAL|UNCKNOWN). Nagios variable - $SERVICESTATE$" or $HOSTSTATE$ ')
+
     parser.add_argument('--host_name',           required=True,  help='Host name. Nagios variable - $HOSTNAME$')
     parser.add_argument('--service_description', required=False, help='Service Description. Nagios variable - $SERVICEDESC$')
     parser.add_argument('--long_date_time',      required=True,  help='Date and time. Nagios variable - $LONGDATETIME$' )
@@ -87,18 +90,18 @@ def main():
     if  args.description == '-':
         args.description = ''.join(sys.stdin.readlines())
 
-# Notification types are mapped to priority
-    priority = {
-        'OK':        'Informational',
-        'RECOVERY':  'Informational',
-        'UNCKNOWN': 'Unknown',
-        'WARNING':  'Warning',
-        'CRITICAL': 'Critical',
+# state are mapped to priority
+    state = {
+        'OK':       '040 Informational',
+        'UNCKNOWN': '030 Unknown',
+        'WARNING':  '020 Warning',
+        'CRITICAL': '010 Critical',
         }
 
 
     nagios_data = {
-        'notification_type': priority[str(args.notification_type).upper()],
+        'state': state[str(args.state).upper()],
+        'notification_type': args.notification_type,
         'description': args.description,
         'host_name': args.host_name,
         'long_date_time': args.long_date_time,
@@ -144,7 +147,7 @@ def main():
         'Payload__c':  json.dumps(nagios_data),
         'Alert_ID__c': Alert_ID,
         'Cloud__c':    environment,
-        'Priority__c': nagios_data['notification_type']
+        'Priority__c': nagios_data['state']
         }
 
     comment_data = {
@@ -218,4 +221,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
