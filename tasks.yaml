@@ -1,6 +1,6 @@
 # Priority is important, this ensure that this plugin is deployed after
 # the LMA Infrastructure Alerting plugin.
-- role: [infrastructure_alerting]
+- role: [primary-infrastructure_alerting]
   stage: post_deployment/8202
   type: puppet
   parameters:

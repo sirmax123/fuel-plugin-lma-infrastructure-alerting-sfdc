@@ -1,6 +1,6 @@
 - id: infrastructure_alerting_sfdc
   type: group
-  role: [infrastructure_alerting]
+  role: [primary-infrastructure_alerting]
   tasks:
     - hiera
     - globals
@@ -12,3 +12,28 @@
   parameters:
     strategy:
       type: parallel
+
+# Priority is important, this ensure that this plugin is deployed after
+# the LMA Infrastructure Alerting plugin.
+- id: sfdc
+  type: puppet
+  version: 2.0.0
+  role: [primary-infrastructure_alerting]
+  required_for: [deploy_end]
+  reexecute_on: [deploy_changes]
+  parameters:
+    puppet_manifest: "puppet/manifests/sfdc.pp"
+    puppet_modules:  "puppet/modules:/etc/puppet/modules"
+    timeout: 600
+
+
+
+#- id: lma-alerting-vip
+#  type: puppet
+#  version: 2.0.0
+#  requires: [lma-alerting-cluster]
+#  required_for: [deploy_end]
+#  parameters:
+#    puppet_manifest: "/etc/puppet/modules/osnailyfacter/modular/virtual_ips/virtual_ips.pp"
+#    puppet_modules: /etc/puppet/modules
+#    timeout: 600
