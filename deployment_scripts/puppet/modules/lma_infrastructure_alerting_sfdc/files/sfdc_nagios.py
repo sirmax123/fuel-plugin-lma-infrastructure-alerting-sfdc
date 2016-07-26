@@ -26,12 +26,14 @@ import yaml
 import json
 # import shutil
 import socket
-
+import dateutil.parser
 from argparse import ArgumentParser
 from salesforce import OAuth2, Client
+from datetime import datetime
 
 
 LOG = None
+DELTA_SECONDS=300
 
 def main():
     parser = ArgumentParser()
@@ -90,12 +92,12 @@ def main():
     if  args.description == '-':
         args.description = ''.join(sys.stdin.readlines())
 
-# state are mapped to priority
+# state are mapped to priority 
     state = {
-        'OK':       '040 Informational',
-        'UNCKNOWN': '030 Unknown',
-        'WARNING':  '020 Warning',
-        'CRITICAL': '010 Critical',
+        'OK':       '060 Informational',
+        'UNCKNOWN': '070 Unknown',
+        'WARNING':  '080 Warning',
+        'CRITICAL': '090 Critical',
         }
 
 
@@ -143,11 +145,29 @@ def main():
 
     sfdc_client = Client(sfdc_oauth2)
 
+
+
+# Workaround for sort order. 
+# SFDC allow to use only one field for sort, so  it is not possible to have CRITICAL items frist sorted by time, then WARN sorted by time  etc
+# So  I use field which contains some kind of anti-date, years letft before 2100 + monthes left before end of the year +  days before ent of the month etc.
+# In  this way I have string which  can be sorted in correct way
+#    Y=2100-int(datetime.strftime(datetime.now(), "%Y"))
+#    m=12-int(datetime.strftime(datetime.now(), "%m"))
+#    d=31-int(datetime.strftime(datetime.now(), "%d"))
+#    H=24-int(datetime.strftime(datetime.now(), "%H"))
+#    M=60-int(datetime.strftime(datetime.now(), "%M"))
+#    S=60-int(datetime.strftime(datetime.now(), "%S"))
+#
+#    sort_marker='{}{}{}{}{}{}'.format(str(Y).zfill(2), str(m).zfill(2), str(d).zfill(2), str(H).zfill(2), str(M).zfill(2), str(S).zfill(2) )
+#
+
+
     data = {
         'Payload__c':  json.dumps(nagios_data),
         'Alert_ID__c': Alert_ID,
         'Cloud__c':    environment,
-        'Priority__c': nagios_data['state']
+        'Priority__c': nagios_data['state'],
+#        'sort_marker__c': sort_marker,
         }
 
     comment_data = {
@@ -178,22 +198,57 @@ def main():
         LOG.debug('MOS_Alert_Id: {} '.format(Id))
 
 
-        # Get Alert name from  current alart
+        # Get Alert name from  current alert
         current_alert = sfdc_client.get_mos_alert(Id).json()
+        LOG.debug(json.dumps(current_alert,sort_keys=True, indent=4))
+
+        # We have current alert and need to change status. If this alert is older N days 
+        # need to update it, if newer - 
+
+
         comment_data['MOS_Alert_Name__c'] = current_alert['Name']
         LOG.debug('Existing MOS_Alert_Id: {} '.format(current_alert))
 
-        # Update Alert (alert contailns LAST status)
-        u = sfdc_client.update_mos_alert(id=Id, data=data)
 
-        LOG.debug('Upate status code: {} '.format(u.status_code))
+        LastModifiedDate=current_alert['LastModifiedDate']
+        LOG.debug(LastModifiedDate)
+        Now=datetime.now().replace(tzinfo=None)
+        delta = Now - dateutil.parser.parse(LastModifiedDate).replace(tzinfo=None)
+        #print(dateutil.parser.parse(LastModifiedDate))
+        #print(delta.seconds)
 
-        # Add comment to updated alert
-        comment_data['related_id__c'] = Id
-        comment_data['MosAlertId__c'] = Id
-        add_comment = sfdc_client.create_mos_alert_comment(comment_data)
-        LOG.debug('Add Comment status code: {} '.format(add_comment.status_code))
-        LOG.debug('Add Comment data: {} '.format(add_comment.text))
+        if (delta.seconds > DELTA_SECONDS):
+          # Old alert is outdated
+          new_data = {
+            'Alert_Id__c': '{}_closed_at_{}'.format(current_alert['Alert_ID__c'],datetime.strftime(datetime.now(), "%Y.%m.%d-%H:%M:%S")),
+            'Priority__c': '000 OUTDATED',
+          }
+          u = sfdc_client.update_mos_alert(id=Id, data=new_data)
+          LOG.debug('Upate status code: {} '.format(u.status_code))
+          LOG.debug('Upate content: {} '.format(u.content))
+          LOG.debug('Upate headers: {} '.format(u.headers))
+ 
+          # Try to create new alert again 
+          try:
+            new_alert = sfdc_client.create_mos_alert(data)
+          except Exception as E:
+            LOG.debug(E)
+            sys.exit(1)
+        else:
+
+          # Update Alert (alert contailns LAST status)
+          u = sfdc_client.update_mos_alert(id=Id, data=data)
+
+          LOG.debug('Upate status code: {} '.format(u.status_code))
+
+          # Add comment to updated alert
+          comment_data['related_id__c'] = Id
+          comment_data['MosAlertId__c'] = Id
+          add_comment = sfdc_client.create_mos_alert_comment(comment_data)
+
+          LOG.debug('Add Comment status code: {} '.format(add_comment.status_code))
+          LOG.debug('Add Comment data: {} '.format(add_comment.text))
+
     elif  (new_alert.status_code  == 201):
         # Add commnet, because MOS_Alert is LAST data and will be overriden on update
         Id = new_alert.json()['id']
@@ -204,6 +259,9 @@ def main():
         add_comment = sfdc_client.create_mos_alert_comment(comment_data)
         LOG.debug('Add Comment status code: {} '.format(add_comment.status_code))
         LOG.debug('Add Comment data: {} '.format(add_comment.text))
+    else:
+        LOG.debug("Unexpected error: Alert was not created (code !=201) and alert does not exist (code != 400)")
+        sys.exit(1)
 
 # Serach example
 #    a=sfdc_client.search("SELECT Id from Case")
@@ -221,5 +279,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-
 
