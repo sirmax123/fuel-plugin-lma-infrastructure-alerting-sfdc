@@ -17,6 +17,7 @@ define command{
                                --host_name "$HOSTNAME$" \
                                --service_description "$SERVICEDESC$" \
                                --notification_type "$NOTIFICATIONTYPE$" \
+                               --state "$SERVICESTATE$" \
                                --debug \
                                --log_file "<%= @plugin_log_file %>"
         }
@@ -35,6 +36,7 @@ define command{
                                --description "-" \
                                --host_name "$HOSTNAME$" \
                                --notification_type "$NOTIFICATIONTYPE$" \
+                               --state  "$HOSTSTATE$" \
                                --debug \
                                --log_file "<%= @plugin_log_file %>"
         }
