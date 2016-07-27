@@ -95,7 +95,7 @@ def main():
 # state are mapped to priority 
     state = {
         'OK':       '060 Informational',
-        'UNCKNOWN': '070 Unknown',
+        'UNKNOWN': '070 Unknown',
         'WARNING':  '080 Warning',
         'CRITICAL': '090 Critical',
         }
@@ -111,6 +111,8 @@ def main():
 
     if args.service_description:
         nagios_data['service_description'] = args.service_description
+    else:
+        nagios_data['service_description'] = ''
 
     LOG.debug('Nagios data: {} '.format(nagios_data))
 
@@ -161,12 +163,20 @@ def main():
 #    sort_marker='{}{}{}{}{}{}'.format(str(Y).zfill(2), str(m).zfill(2), str(d).zfill(2), str(H).zfill(2), str(M).zfill(2), str(S).zfill(2) )
 #
 
+    payload = {
+        'notification_type': args.notification_type,
+        'description':       args.description,
+        'long_date_time':    args.long_date_time,
+         }
 
     data = {
-        'Payload__c':  json.dumps(nagios_data),
+        'Payload__c':  json.dumps(payload),
         'Alert_ID__c': Alert_ID,
         'Cloud__c':    environment,
         'Priority__c': nagios_data['state'],
+        'Host__c':     nagios_data['host_name'],
+        'Service__c':  nagios_data['service_description'],
+
 #        'sort_marker__c': sort_marker,
         }
 
@@ -235,6 +245,16 @@ def main():
           except Exception as E:
             LOG.debug(E)
             sys.exit(1)
+          else:
+            Id = new_alert.json()['id']
+            comment_data['related_id__c'] = Id
+            comment_data['MosAlertId__c'] = Id
+            current_alert = sfdc_client.get_mos_alert(Id).json()
+            comment_data['MOS_Alert_Name__c'] = current_alert['Name']
+            add_comment = sfdc_client.create_mos_alert_comment(comment_data)
+            LOG.debug('Add Comment status code: {} '.format(add_comment.status_code))
+            LOG.debug('Add Comment data: {} '.format(add_comment.text))
+
         else:
 
           # Update Alert (alert contailns LAST status)
