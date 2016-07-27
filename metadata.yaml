@@ -9,7 +9,7 @@ authors: ['Mirantis mmaxur@mirantis.com']
 homepage: 'https://github.com/sirmax123/fuel-plugin-lma-infrastructure-alerting-sfdc'
 
 groups: ['monitoring']
-is_hotpluggable: false
+is_hotpluggable: true
 
 # The plugin is compatible with releases in the list
 releases:
