@@ -19,7 +19,8 @@
   type: puppet
   version: 2.0.0
   role: [primary-infrastructure_alerting]
-  required_for: [deploy_end]
+  requires: [lma-alerting-nagios]
+  required_for: [post_deployment_end]
   reexecute_on: [deploy_changes]
   parameters:
     puppet_manifest: "puppet/manifests/sfdc.pp"
