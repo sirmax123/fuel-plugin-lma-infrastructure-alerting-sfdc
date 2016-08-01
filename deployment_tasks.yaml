@@ -1,6 +1,6 @@
 - id: infrastructure_alerting_sfdc
   type: group
-  role: [primary-infrastructure_alerting]
+  role: [primary-infrastructure_alerting, infrastructure_alerting]
   tasks:
     - hiera
     - globals
@@ -18,7 +18,7 @@
 - id: sfdc
   type: puppet
   version: 2.0.0
-  role: [primary-infrastructure_alerting]
+  role: [primary-infrastructure_alerting, infrastructure_alerting]
   requires: [lma-alerting-nagios]
   required_for: [post_deployment_end]
   reexecute_on: [deploy_changes]
