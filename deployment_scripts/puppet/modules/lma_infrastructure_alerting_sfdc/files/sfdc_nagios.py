@@ -26,12 +26,14 @@ import yaml
 import json
 # import shutil
 import socket
-
+import dateutil.parser
 from argparse import ArgumentParser
 from salesforce import OAuth2, Client
+from datetime import datetime
 
 
 LOG = None
+DELTA_SECONDS=300
 
 def main():
     parser = ArgumentParser()
@@ -42,6 +44,9 @@ def main():
 
     parser.add_argument('--notification_type',  required=True,
                            help='Notification type (PROBLEM|RECOVERY|CUSTOM). Nagios variable - $NOTIFICATIONTYPE$" ')
+
+    parser.add_argument('--state',  required=True,
+                           help='Service ot Host (OK|WARNING|CRITICAL|UNCKNOWN). Nagios variable - $SERVICESTATE$" or $HOSTSTATE$ ')
 
     parser.add_argument('--host_name',           required=True,  help='Host name. Nagios variable - $HOSTNAME$')
     parser.add_argument('--service_description', required=False, help='Service Description. Nagios variable - $SERVICEDESC$')
@@ -87,16 +92,27 @@ def main():
     if  args.description == '-':
         args.description = ''.join(sys.stdin.readlines())
 
+# state are mapped to priority 
+    state = {
+        'OK':       '060 Informational',
+        'UNKNOWN':  '070 Unknown',
+        'WARNING':  '080 Warning',
+        'CRITICAL': '090 Critical',
+        }
+
 
     nagios_data = {
+        'state':             state[str(args.state).upper()],
         'notification_type': args.notification_type,
-        'description': args.description,
-        'host_name': args.host_name,
-        'long_date_time': args.long_date_time,
-         }
+        'description':       args.description,
+        'host_name':         args.host_name,
+        'long_date_time':    args.long_date_time,
+    }
 
     if args.service_description:
         nagios_data['service_description'] = args.service_description
+    else:
+        nagios_data['service_description'] = ''
 
     LOG.debug('Nagios data: {} '.format(nagios_data))
 
@@ -131,79 +147,127 @@ def main():
 
     sfdc_client = Client(sfdc_oauth2)
 
+
+
+    payload = {
+        'notification_type': args.notification_type,
+        'description':       args.description,
+        'long_date_time':    args.long_date_time,
+         }
+
     data = {
-        'Payload__c':  json.dumps(nagios_data),
-        'Alert_ID__c': Alert_ID,
-        'Cloud__c':    environment,
+        'IsMosAlert__c':     'true',
+        'Description':       json.dumps(payload, sort_keys=True, indent=4),
+        'Alert_ID__c':       Alert_ID,
+        'Subject':           Alert_ID,
+        'Environment2__c':   environment,
+        'Alert_Priority__c': nagios_data['state'],
+        'Alert_Host__c':     nagios_data['host_name'],
+        'Alert_Service__c':  nagios_data['service_description'],
+
+#        'sort_marker__c': sort_marker,
         }
 
-    comment_data = {
-        'related_id__c':     "-1",
-        'Comment__c':        json.dumps(nagios_data),
+    feed_data_body = {
+        'Description':       payload,
         'Alert_Id__c':       Alert_ID,
-        'MOS_Alert_Name__c': "MA-0" ,
-        'MosAlertId__c':     "-1",
-        'Cloud__c':          environment,
+        'Environment2__c':   environment,
+        'Alert_Priority__c': nagios_data['state'],
+        'Status':   'test',
+
         }
+
 
 
     try:
-      new_alert = sfdc_client.create_mos_alert(data)
+      new_case = sfdc_client.create_case(data)
     except Exception as E:
        LOG.debug(E)
        sys.exit(1)
 
-    LOG.debug('New MOS_Alert status code {} '.format(new_alert.status_code))
-    LOG.debug('New MOS_Alert: {} '.format(new_alert.text))
 
-    if (new_alert.status_code  == 400) and (new_alert.json()[0]['errorCode'] == 'DUPLICATE_VALUE'):
-        # Mos Alert exists
-        LOG.debug('Code: {}, Error message: {} '.format(new_alert.status_code, new_alert.text))
-
-        # Find Alert ID
-        Id = new_alert.json()[0]['message'].split(" ")[-1]
-        LOG.debug('MOS_Alert_Id: {} '.format(Id))
+    LOG.debug('New Caset status code: {} '.format(new_case.status_code))
+    LOG.debug('New Case data: {} '.format(new_case.text))
 
 
-        # Get Alert name from  current alart
-        current_alert = sfdc_client.get_mos_alert(Id).json()
-        comment_data['MOS_Alert_Name__c'] = current_alert['Name']
-        LOG.debug('Existing MOS_Alert_Id: {} '.format(current_alert))
+#  If Case exist
+    if (new_case.status_code  == 400) and (new_case.json()[0]['errorCode'] == 'DUPLICATE_VALUE'):
+        LOG.debug('Code: {}, Error message: {} '.format(new_case.status_code, new_case.text))
+        # Find Case ID
+        ExistingCaseId = new_case.json()[0]['message'].split(" ")[-1]
+        LOG.debug('ExistingCaseId: {} '.format(ExistingCaseId))
+        # Get Case 
+        current_case = sfdc_client.get_case(ExistingCaseId).json()
+        LOG.debug("Existing Case: \n {}".format(json.dumps(current_case,sort_keys=True, indent=4)))
 
-        # Update Alert (alert contailns LAST status)
-        u = sfdc_client.update_mos_alert(id=Id, data=data)
+        LastModifiedDate=current_case['LastModifiedDate']
+        Now=datetime.now().replace(tzinfo=None)
+        delta = Now - dateutil.parser.parse(LastModifiedDate).replace(tzinfo=None)
 
-        LOG.debug('Upate status code: {} '.format(u.status_code))
+        LOG.debug("Check if Case should be marked as OUTDATED. Case modification date is: {} , Now: {} , Delta(sec): {}, OutdateDelta(sec): {}".format(LastModifiedDate, Now, delta.seconds, DELTA_SECONDS))
+        if (delta.seconds > DELTA_SECONDS):
+            # Old Case is outdated
+            new_data = {
+               'Alert_Id__c': '{}_closed_at_{}'.format(current_case['Alert_ID__c'],datetime.strftime(datetime.now(), "%Y.%m.%d-%H:%M:%S")),
+               'Alert_Priority__c': '000 OUTDATED',
+            }
+            u = sfdc_client.update_case(id=ExistingCaseId, data=new_data)
+            LOG.debug('Upate status code: {} \n\nUpate content: {}\n\n Upate headers: {}\n\n'.format(u.status_code,u.content, u.headers))
 
-        # Add comment to updated alert
-        comment_data['related_id__c'] = Id
-        comment_data['MosAlertId__c'] = Id
-        add_comment = sfdc_client.create_mos_alert_comment(comment_data)
-        LOG.debug('Add Comment status code: {} '.format(add_comment.status_code))
-        LOG.debug('Add Comment data: {} '.format(add_comment.text))
-    elif  (new_alert.status_code  == 201):
-        # Add commnet, because MOS_Alert is LAST data and will be overriden on update
-        Id = new_alert.json()['id']
-        comment_data['related_id__c'] = Id
-        comment_data['MosAlertId__c'] = Id
-        current_alert = sfdc_client.get_mos_alert(Id).json()
-        comment_data['MOS_Alert_Name__c'] = current_alert['Name']
-        add_comment = sfdc_client.create_mos_alert_comment(comment_data)
-        LOG.debug('Add Comment status code: {} '.format(add_comment.status_code))
-        LOG.debug('Add Comment data: {} '.format(add_comment.text))
+            # Try to create new caset again 
+            try:
+                new_case = sfdc_client.create_case(data)
+            except Exception as E:
+                LOG.debug(E)
+                sys.exit(1)
+            else:
+               # Case was outdated an new was created
+                CaseId = new_case.json()['id']
+                LOG.debug("Case was just created, old one was marked as Outdated")
+                # Add commnet, because Case head should conains  LAST data  overriden on any update
+                CaseId = new_case.json()['id']
 
-# Serach example
-#    a=sfdc_client.search("SELECT Id from Case")
-#    for b  in a:
-#        print(b['Id'])
-#        sfdc_client.get_case(b['Id'])
+                feeditem_data = {
+                  'ParentId':   CaseId,
+                  'Visibility': 'AllUsers',
+                  'Body': json.dumps(feed_data_body, sort_keys=True, indent=4),
+                }
+                LOG.debug("FeedItem Data: {}".format(json.dumps(feeditem_data, sort_keys=True, indent=4)))
+                add_feed_item = sfdc_client.create_feeditem(feeditem_data)
+                LOG.debug('Add FeedItem status code: {} \n Add FeedItem reply: {} '.format(add_feed_item.status_code, add_feed_item.text))
 
+        else:
+            # Update Case
+            u = sfdc_client.update_case(id=ExistingCaseId, data=data)
+            LOG.debug('Upate status code: {} '.format(u.status_code))
 
-#    a=sfdc_client.search("SELECT Payload__c from MOS_Alerts__c")
-#    for b  in a:
-#        print(b['Payload__c'])
-#
-#        sfdc_client.get_case(b['Id'])
+            feeditem_data = {
+                'ParentId':   ExistingCaseId,
+                'Visibility': 'AllUsers',
+                'Body': json.dumps(feed_data_body, sort_keys=True, indent=4),
+            }
+
+            LOG.debug("FeedItem Data: {}".format(json.dumps(feeditem_data, sort_keys=True, indent=4)))
+            add_feed_item = sfdc_client.create_feeditem(feeditem_data)
+            LOG.debug('Add FeedItem status code: {} \n Add FeedItem reply: {} '.format(add_feed_item.status_code, add_feed_item.text))
+
+# Else If Case did not exist before and was just  created
+    elif  (new_case.status_code  == 201):
+        LOG.debug("Case was just created")
+        # Add commnet, because Case head should conains  LAST data  overriden on any update
+        CaseId = new_case.json()['id']
+        feeditem_data = {
+          'ParentId':   CaseId,
+          'Visibility': 'AllUsers',
+          'Body': json.dumps(feed_data_body, sort_keys=True, indent=4),
+        }
+        LOG.debug("FeedItem Data: {}".format(json.dumps(feeditem_data, sort_keys=True, indent=4)))
+        add_feed_item = sfdc_client.create_feeditem(feeditem_data)
+        LOG.debug('Add FeedItem status code: {} \n Add FeedItem reply: {} '.format(add_feed_item.status_code, add_feed_item.text))
+
+    else:
+        LOG.debug("Unexpected error: Case was not created (code !=201) and Case does not exist (code != 400)")
+        sys.exit(1)
 
 
 if __name__ == '__main__':

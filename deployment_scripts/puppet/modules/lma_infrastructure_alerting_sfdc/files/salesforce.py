@@ -1,3 +1,20 @@
+#    Copyright 2016 Mirantis, Inc.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+#
+#
+
+
 import requests
 import json
 import xml.dom.minidom
@@ -71,6 +88,10 @@ class OAuth2(object):
         response = requests.post(soap_url,
                              login_soap_request_body,
                              headers=login_soap_request_headers)
+        LOG.debug(response)
+        LOG.debug(response.status_code)
+        LOG.debug(response.text)
+
 
         session_id = self.getUniqueElementValueFromXmlString(response.content, 'sessionId')
         server_url = self.getUniqueElementValueFromXmlString(response.content, 'serverUrl')
@@ -138,8 +159,12 @@ class Client(object):
         return self.delete('/services/data/v36.0/sobjects/MOS_Alert_Comment__c/{}'.format(id))
 
 
+    def create_feeditem(self, data):
+        return self.post('/services/data/v36.0/sobjects/FeedItem', data=json.dumps(data), headers={"content-type": "application/json"})
+
+
     def create_case(self, data):
-        return self.post('/services/data/v36.0/sobjects/Case', data=json.dumps(data), headers={"content-type": "application/json"}).json()
+        return self.post('/services/data/v36.0/sobjects/Case', data=json.dumps(data), headers={"content-type": "application/json"})
 
 
     def create_ticket(self, data):
@@ -160,6 +185,9 @@ class Client(object):
 
     def update_mos_alert(self, id, data):
         return self.patch('/services/data/v36.0/sobjects/MOS_Alerts__c/{}'.format(id), data=json.dumps(data), headers={"content-type": "application/json"})
+
+    def update_case(self, id, data):
+        return self.patch('/services/data/v36.0/sobjects/Case/{}'.format(id), data=json.dumps(data), headers={"content-type": "application/json"})
 
 
     def update_comment(self, id, data):
@@ -226,12 +254,10 @@ class Client(object):
         response = requests.request(method, url, headers=headers, **kwargs)
 
 # Debug only
-#        print(response.status_code)
-#        try:
-#          print(json.dumps(response.json(),sort_keys=True, indent=4, separators=(',', ': ') ) )
-#        except Exception:
-#           print(response.content)
-#
-#        response.raise_for_status()
+        LOG.debug("Response code: {}".format(response.status_code))
+        try:
+          LOG.debug("Response content: {}".format(json.dumps(response.json(),sort_keys=True, indent=4, separators=(',', ': '))))
+        except Exception:
+          LOG.debug("Response content: {}".format(response.content))
 
         return response
