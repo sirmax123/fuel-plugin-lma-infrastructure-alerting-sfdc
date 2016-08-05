@@ -169,12 +169,11 @@ def main():
         }
 
     feed_data_body = {
-        'Description':       payload,
-        'Alert_Id__c':       Alert_ID,
-        'Environment2__c':   environment,
-        'Alert_Priority__c': nagios_data['state'],
-        'Status':   'test',
-
+        'Description':    payload,
+        'Alert_Id':       Alert_ID,
+        'Cloud_ID':       environment,
+        'Alert_Priority': nagios_data['state'],
+        'Status':         "New",
         }
 
 
