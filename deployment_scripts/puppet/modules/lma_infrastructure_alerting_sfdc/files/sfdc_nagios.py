@@ -33,7 +33,8 @@ from datetime import datetime
 
 
 LOG = None
-DELTA_SECONDS=300
+DELTA_SECONDS=3000000000
+#DELTA_SECONDS=1
 
 def main():
     parser = ArgumentParser()
@@ -175,7 +176,8 @@ def main():
         'Alert_Priority': nagios_data['state'],
         'Status':         "New",
 
-        } 
+        }
+
 
 
     try:
@@ -201,6 +203,9 @@ def main():
         LOG.debug("Existing Case: \n {}".format(json.dumps(current_case,sort_keys=True, indent=4)))
 
         LastModifiedDate=current_case['LastModifiedDate']
+        ExistingCaseStatus=current_case['Status']
+        feed_data_body['Status'] = ExistingCaseStatus
+
         Now=datetime.now().replace(tzinfo=None)
         delta = Now - dateutil.parser.parse(LastModifiedDate).replace(tzinfo=None)
 
