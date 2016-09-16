@@ -33,7 +33,8 @@ from datetime import datetime
 
 
 LOG = None
-DELTA_SECONDS=300
+DELTA_SECONDS=3000000000
+#DELTA_SECONDS=1
 
 def main():
     parser = ArgumentParser()
@@ -174,6 +175,7 @@ def main():
         'Cloud_ID':       environment,
         'Alert_Priority': nagios_data['state'],
         'Status':         "New",
+
         }
 
 
@@ -185,6 +187,7 @@ def main():
        sys.exit(1)
 
 
+#    print(new_case)
     LOG.debug('New Caset status code: {} '.format(new_case.status_code))
     LOG.debug('New Case data: {} '.format(new_case.text))
 
@@ -200,6 +203,9 @@ def main():
         LOG.debug("Existing Case: \n {}".format(json.dumps(current_case,sort_keys=True, indent=4)))
 
         LastModifiedDate=current_case['LastModifiedDate']
+        ExistingCaseStatus=current_case['Status']
+        feed_data_body['Status'] = ExistingCaseStatus
+
         Now=datetime.now().replace(tzinfo=None)
         delta = Now - dateutil.parser.parse(LastModifiedDate).replace(tzinfo=None)
 
