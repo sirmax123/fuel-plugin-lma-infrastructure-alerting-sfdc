@@ -62,3 +62,48 @@ attributes:
     type: "text"
     regex: *not_empty_parameter
 
+
+
+  host_regexp:
+    value: 'host=[a-z,A-Z,\-,0-9,\.]*'
+    label: 'Regular expression to find affected host in nagios service output'
+    weight: 90
+    type: "text"
+    regex: *not_empty_parameter
+
+
+  log_file:
+    value: '/var/log/nagios_to_sfdc.log'
+    label: 'log file name'
+    weight: 90
+    type: "text"
+    regex: *not_empty_parameter
+
+
+
+  max_time:
+    value: '3600'
+    label: 'Message TTL in queue in seconds.'
+    weight: 90
+    type: "text"
+    regex: *not_empty_parameter
+
+
+
+
+  max_attempts:
+    value: '10'
+    label: 'Max number of attempts to create object in SFDC'
+    weight: 90
+    type: "text"
+    regex: *not_empty_parameter
+
+  sleep_time:
+    value: '30'
+    label: 'Timeout between retrys'
+    weight: 90
+    type: "text"
+    regex: *not_empty_parameter
+
+
+
