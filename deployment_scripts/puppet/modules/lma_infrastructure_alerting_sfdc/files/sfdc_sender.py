@@ -15,11 +15,12 @@ from argparse import ArgumentParser
 from salesforce import OAuth2, Client
 from datetime import datetime
 from functools import partial
+import itertools
 
 
 def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
 
-    LOG.debug('Starting ... ')
+    LOG.info('Starting ... ')
     environment = config['environment']
     max_time = int(config['max_time'])
     max_attempts = int(config['max_attempts'])
@@ -30,12 +31,12 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
     try:
 #        nagios_data =  json.loads(str(body))
         nagios_data =  json.loads(str(body))
-        LOG.debug('Nagios data: \n {} \n '.format(json.dumps(nagios_data,sort_keys=True, indent=4)))
+        LOG.info('Nagios data: \n {} \n '.format(json.dumps(nagios_data,sort_keys=True, indent=4)))
     except Exception as E:
 # If message cn't be decoded we need to remove ot from queue and record to log.
 # May be need to create some spetial alert on it?
-        LOG.debug('Nagios data cant be decoded: \n {} \n '.format(body))
-        LOG.debug(E)
+        LOG.info('Nagios data cant be decoded: \n {} \n '.format(body))
+        LOG.info(E)
         ch.basic_ack(delivery_tag = method.delivery_tag)
         return None
 
@@ -106,12 +107,12 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
 
         #  If Case exist
         if (new_case.status_code  == 400) and (new_case.json()[0]['errorCode'] == 'DUPLICATE_VALUE'):
-            LOG.debug('Code: {}, Error message: {} '.format(new_case.status_code, new_case.text))
+            LOG.info('Code: {}, Error message: {} '.format(new_case.status_code, new_case.text))
             # Find Case ID
             ExistingCaseId = new_case.json()[0]['message'].split(" ")[-1]
 
             u = sfdc_client.update_case(id=ExistingCaseId, data=alert_data)
-            LOG.debug('Upate status code: {} '.format(u.status_code))
+            LOG.info('Upate status code: {} '.format(u.status_code))
 
             feeditem_data = {
                     'ParentId':    ExistingCaseId,
@@ -119,15 +120,15 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
                     'Body':        json.dumps(feed_data_body, sort_keys=True, indent=4)
             }
 
-            LOG.debug("FeedItem Data: {}".format(json.dumps(feeditem_data, sort_keys=True, indent=4)))
+            LOG.info("FeedItem Data: {}".format(json.dumps(feeditem_data, sort_keys=True, indent=4)))
             add_feed_item = sfdc_client.create_feeditem(feeditem_data)
-            LOG.debug('Add FeedItem status code: {} \n Add FeedItem reply: {} '.format(add_feed_item.status_code, add_feed_item.text))
+            LOG.info('Add FeedItem status code: {} \n Add FeedItem reply: {} '.format(add_feed_item.status_code, add_feed_item.text))
             # Ack
             ch.basic_ack(delivery_tag = method.delivery_tag)
             return
         # Else If Case did not exist before and was just  created
         elif  (new_case.status_code  == 201):
-            LOG.debug("Case was just created")
+            LOG.info("Case was just created")
             # Add commnet, because Case head should conains  LAST data  overriden on any update
             CaseId = new_case.json()['id']
             feeditem_data = {
@@ -135,26 +136,26 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
                'Visibility': 'AllUsers',
                'Body': json.dumps(feed_data_body, sort_keys=True, indent=4),
             }
-            LOG.debug("FeedItem Data: {}".format(json.dumps(feeditem_data, sort_keys=True, indent=4)))
+            LOG.info("FeedItem Data: {}".format(json.dumps(feeditem_data, sort_keys=True, indent=4)))
             add_feed_item = sfdc_client.create_feeditem(feeditem_data)
-            LOG.debug('Add FeedItem status code: {} \n Add FeedItem reply: {} '.format(add_feed_item.status_code, add_feed_item.text))
+            LOG.info('Add FeedItem status code: {} \n Add FeedItem reply: {} '.format(add_feed_item.status_code, add_feed_item.text))
             # Ack
             ch.basic_ack(delivery_tag = method.delivery_tag)
             return
         else:
-            LOG.debug("Unexpected error: Case was not created (code !=201) and Case does not exist (code != 400), raising exeption!")
+            LOG.info("Unexpected error: Case was not created (code !=201) and Case does not exist (code != 400), raising exeption!")
             raise requests.exceptions.ConnectionError
 
     except requests.exceptions.ConnectionError as E:
-        LOG.debug(E)
+        LOG.info(E)
 
-        LOG.debug("Unexpected error: Case was not created (code !=201) and Case does not exist (code != 400) or connection error")
+        LOG.info("Unexpected error: Case was not created (code !=201) and Case does not exist (code != 400) or connection error")
         new_body = json.loads(str(body))
-        LOG.debug('Failed to sent, updating message:  \n {}  \n '.format(json.dumps(new_body,sort_keys=True, indent=4)))
+        LOG.info('Failed to sent, updating message:  \n {}  \n '.format(json.dumps(new_body,sort_keys=True, indent=4)))
 
         # delete message if max_attempts were done
         if ( int(new_body['sfdc_attempts']) >  max_attempts ):
-            LOG.debug('Removing  message: sfdc_attempts = {}, max_attempts = {} '.format(new_body['sfdc_attempts'], max_attempts))
+            LOG.info('Removing  message: sfdc_attempts = {}, max_attempts = {} '.format(new_body['sfdc_attempts'], max_attempts))
             ch.basic_ack(delivery_tag = method.delivery_tag)
             return
         else:
@@ -163,7 +164,7 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
 
         now_time = int(time.time())
         if ( now_time - int(new_body['publishing_time']) > max_time ):
-            LOG.debug('Removing  message: publishing_time = {}, now_time = {}, max_time = {} '.format(new_body['publishing_time'], now_time, max_time))
+            LOG.info('Removing  message: publishing_time = {}, now_time = {}, max_time = {} '.format(new_body['publishing_time'], now_time, max_time))
             ch.basic_ack(delivery_tag = method.delivery_tag)
             return
         # if message is not too old and we have not done enouth attempts to send it, remove old and create new with attemts = attempts +1 
@@ -180,10 +181,10 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
 
         # no  sense to try again right after fail so sleep some time
         now_time = int(time.time())
-        LOG.debug('Starting sleep: sleep_time = {}, now = {} '.format(sleep_time, now_time))
+        LOG.info('Starting sleep: sleep_time = {}, now = {} '.format(sleep_time, now_time))
         time.sleep(sleep_time)
         now_time = int(time.time())
-        LOG.debug('Sleep Finished: sleep_time = {}, now = {} '.format(sleep_time, now_time))
+        LOG.info('Sleep Finished: sleep_time = {}, now = {} '.format(sleep_time, now_time))
 
 
 
@@ -200,17 +201,20 @@ def main():
 
 # parse config file
     with open(args.config_file) as fp:
-        config = yaml.load(fp)
+        config = yaml.safe_load(fp)
 
-        amqp_host       = config['amqp_host']
-        amqp_port       = int(config['amqp_port'])
+        amqp_hosts       = config['amqp_hosts'].split()
+
+        print(amqp_hosts)
+
+
         amqp_user       = config['amqp_user']
         amqp_password   = config['amqp_password']
         amqp_queue_name = config['amqp_queue_name']
 
         host_regexp = config['host_regexp']
         log_file    = config['log_file']
-
+        sleep_time = int(config['sleep_time'])
 
         environment          = config['environment']
         sfdc_client_id       = config['sfdc_client_id']
@@ -221,14 +225,6 @@ def main():
         sfdc_organization_id = config['sfdc_organization_id']
 
 
-    credentials = pika.PlainCredentials(amqp_user, amqp_password)
-    pareameters = pika.ConnectionParameters(amqp_host, amqp_port, '/', credentials)
-    connection = pika.BlockingConnection(pareameters)
-
-    properties=pika.BasicProperties(delivery_mode = 2,)
-
-    channel = connection.channel()
-    channel.queue_declare(queue=amqp_queue_name, durable=True)
 
 
 
@@ -261,12 +257,35 @@ def main():
     sfdc_client = Client(sfdc_oauth2)
 
 
-    callback = partial(callback2, config=config, LOG=LOG, sfdc_client = sfdc_client, channel = channel )
+    current_attempt  = 0
+    for amqp_conn_string in itertools.cycle(amqp_hosts):
+        amqp_host = amqp_conn_string.split(':')[0]
+        amqp_port = int(amqp_conn_string.split(':')[1])
 
-    channel.basic_consume(callback,queue=amqp_queue_name)
-    channel.start_consuming()
+        try:
+            LOG.info('Connecting to RabbitMQ,  amqp_conn_string = {},  amqp_host = {}, amqp_port = {}, current_attempt = {} '.format(amqp_conn_string, amqp_host, amqp_port, current_attempt))
+            credentials = pika.PlainCredentials(amqp_user, amqp_password)
 
-    print ' [*] Waiting for messages. To exit press CTRL+C'
+            pareameters = pika.ConnectionParameters(amqp_host, amqp_port, '/', credentials)
+            connection = pika.BlockingConnection(pareameters)
+            properties=pika.BasicProperties(delivery_mode = 2,)
+
+            channel = connection.channel()
+            channel.queue_declare(queue=amqp_queue_name, durable=True)
+
+            callback = partial(callback2, config=config, LOG=LOG, sfdc_client = sfdc_client, channel = channel )
+
+            channel.basic_consume(callback,queue=amqp_queue_name)
+            channel.start_consuming()
+        except Exception as E:
+            LOG.info('Fauled to connect to RabbitMQ,  amqp_conn_string = {},  amqp_host = {}, amqp_port = {}, current_attempt = {} '.format(amqp_conn_string, amqp_host, amqp_port, current_attempt))
+            LOG.info(E)
+            LOG.info('Starting sleep: sleep_time = {}, now = {} '.format(sleep_time, int(time.time())))
+            time.sleep(sleep_time)
+            LOG.info('Sleep Finished: sleep_time = {}, now = {} '.format(sleep_time, int(time.time())))
+            current_attempt = current_attempt +1
+
+    print ' [*] Shutting down'
 
 
 

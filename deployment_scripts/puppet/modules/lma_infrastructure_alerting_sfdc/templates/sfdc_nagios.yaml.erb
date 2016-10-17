@@ -1,33 +1,33 @@
-sfdc_client_id: <%= @client_id %>
-sfdc_client_secret: <%= @client_secret %>
-sfdc_username: <%= @username %>
-sfdc_password: <%= @password %>
-sfdc_auth_url: <%= @auth_url %>
-environment: <%= @env %>
-sfdc_organization_id: <%= @organization_id %>
+# MANAGED BY PUPPET
+#
+sfdc_client_id: '<%= @client_id %>'
+sfdc_client_secret: '<%= @client_secret %>'
+sfdc_username: '<%= @username %>'
+sfdc_password: '<%= @password %>'
+sfdc_auth_url: '<%= @auth_url %>'
+environment: '<%= @env %>'
+sfdc_organization_id: '<%= @organization_id %>'
 
 
 # RabbitMQ related setting (should be set-up by pattet using Hiera for fuel-based envs)
-amqp_host:       '172.18.234.3'
-amqp_port:       '5673'
-amqp_user:       'nova'
-amqp_password:   <%= %>
-amqp_queue_name: 'test_queue'
+amqp_hosts:       '<%= @amqp_hosts %>'
+amqp_user:       '<%= @amqp_user %>'
+amqp_password:   '<%= @amqp_password %>'
+amqp_queue_name: '<%= @amqp_queue_name %>'
 
 
 #
 # how to find hosts from service output
-host_regexp: 'host=[a-z,A-Z,\-,0-9,\.]*'
+host_regexp: '<%= @host_regexp %>'
 
 
 log_file: '<%= @plugin_log_file %>'
 
 # TTL
 # In seconds - try during 1h, if fail message will be deleted
-max_time: 3600
-# Try not more 10 times
-max_attempts: 10
+max_time: '<%= @max_time %>'
+max_attempts: '<%= @max_attempts %>'
 
 # If send fail, sleep sleep_time  seconds
-sleep_time: 5
+sleep_time: '<%= @sleep_time  %>'
 

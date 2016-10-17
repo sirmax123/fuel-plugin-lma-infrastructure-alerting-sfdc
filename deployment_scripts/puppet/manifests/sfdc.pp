@@ -18,6 +18,7 @@ $lma_infrastructure_alerting = hiera_hash('lma_infrastructure_alerting', {})
 
 
 $plugin = hiera('lma_infrastructure_alerting_sfdc')
+$rabbit = hiera('rabbit')
 
 $sfdc_auth_url = $plugin['sfdc_auth_url']
 
@@ -32,18 +33,21 @@ $sfdc_environment = $plugin['environment']
 $sfdc_organization_id = $plugin['sfdc_organization_id']
 
 
-amqp_host = $plugin['amqp_host']
-amqp_port = $plugin['amqp_port']
-amqp_user = $plugin['amqp_user']
-amqp_password = $plugin['amqp_password']
-amqp_queue_name = $plugin['amqp_queue_name']
+$sfdc_amqp_hosts = hiera('amqp_hosts')
 
-host_regexp = $plugin['host_regexp']
-log_file = $plugin['log_file']
 
-max_time = $plugin['max_time']
-max_attempts = $plugin['max_attempts']
-sleep_time = $plugin['sleep_time']
+$sfdc_amqp_user     = $rabbit['user']
+$sfdc_amqp_password = $rabbit['password']
+
+$sfdc_amqp_queue_name = $plugin['amqp_queue_name']
+
+
+
+$sfdc_host_regexp  = $plugin['host_regexp']
+$sfdc_log_file     = $plugin['plugin_log_file']
+$sfdc_max_time     = $plugin['max_time']
+$sfdc_max_attempts = $plugin['max_attempts']
+$sfdc_sleep_time   = $plugin['sleep_time']
 
 
 class { 'lma_infrastructure_alerting_sfdc':
@@ -54,5 +58,14 @@ class { 'lma_infrastructure_alerting_sfdc':
   password        =>  $sfdc_password,
   env             =>  $sfdc_environment,
   organization_id =>  $sfdc_organization_id,
+  amqp_hosts      =>  $sfdc_amqp_hosts,
+  amqp_user       =>  $sfdc_amqp_user,
+  amqp_password   =>  $sfdc_amqp_password,
+  amqp_queue_name =>  $sfdc_amqp_queue_name,
+  host_regexp     =>  $sfdc_host_regexp,
+  log_file        =>  $sfdc_log_file,
+  max_time        =>  $sfdc_max_time,
+  max_attempts    =>  $sfdc_max_attempts,
+  sleep_time      =>  $sfdc_sleep_time,
 }
 
