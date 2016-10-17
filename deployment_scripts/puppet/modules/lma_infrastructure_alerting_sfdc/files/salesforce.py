@@ -1,26 +1,12 @@
-#    Copyright 2016 Mirantis, Inc.
-#
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
-#    not use this file except in compliance with the License. You may obtain
-#    a copy of the License at
-#
-#         http://www.apache.org/licenses/LICENSE-2.0
-#
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#    License for the specific language governing permissions and limitations
-#    under the License.
-#
-#
-
+import urllib3
+urllib3.disable_warnings()
 
 import requests
 import json
 import xml.dom.minidom
 import logging
 
-#requests.packages.urllib3.disable_warnings()
+
 
 LOG = logging.getLogger()
 
@@ -87,6 +73,7 @@ class OAuth2(object):
 
         response = requests.post(soap_url,
                              login_soap_request_body,
+                             verify=None,
                              headers=login_soap_request_headers)
         LOG.debug(response)
         LOG.debug(response.status_code)
@@ -115,7 +102,7 @@ class OAuth2(object):
         }
 
         url = '{}/services/oauth2/token'.format(self.auth_url)
-        response = requests.post(url, data=data)
+        response = requests.post(url, verify=None, data=data)
         response.raise_for_status()
         return response.json()
 
@@ -251,13 +238,23 @@ class Client(object):
 
         url = self.instance_url + url
 
-        response = requests.request(method, url, headers=headers, **kwargs)
+        response = requests.request(method, url, headers=headers, verify=None, **kwargs)
+
 
 # Debug only
-        LOG.debug("Response code: {}".format(response.status_code))
+        LOG.debug("salesforce.py: Response code: {}".format(response.status_code))
         try:
-          LOG.debug("Response content: {}".format(json.dumps(response.json(),sort_keys=True, indent=4, separators=(',', ': '))))
+            LOG.debug("salesforce.py: Response content: {}".format(json.dumps(response.json(),sort_keys=True, indent=4, separators=(',', ': '))))
+
+            if  (response.json()[0]['errorCode'] == 'INVALID_SESSION_ID'):
+                LOG.debug("salesforce.py: Trying  gain")
+                result = self.oauth2.authenticate()
+                self.access_token = result['access_token']
+                self.instance_url = result['instance_url']
+                headers['Authorization'] = 'Bearer {}'.format(self.access_token)
+                response = requests.request(method, url, headers=headers, verify=None, **kwargs)
         except Exception:
-          LOG.debug("Response content: {}".format(response.content))
+            LOG.debug("salesforce.py: Response content: {}".format(response.content))
+
 
         return response

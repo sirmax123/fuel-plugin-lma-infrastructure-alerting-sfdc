@@ -5,3 +5,29 @@ sfdc_password: <%= @password %>
 sfdc_auth_url: <%= @auth_url %>
 environment: <%= @env %>
 sfdc_organization_id: <%= @organization_id %>
+
+
+# RabbitMQ related setting (should be set-up by pattet using Hiera for fuel-based envs)
+amqp_host:       '172.18.234.3'
+amqp_port:       '5673'
+amqp_user:       'nova'
+amqp_password:   <%= %>
+amqp_queue_name: 'test_queue'
+
+
+#
+# how to find hosts from service output
+host_regexp: 'host=[a-z,A-Z,\-,0-9,\.]*'
+
+
+log_file: '/var/log/sfdc_sender.log'
+
+# TTL
+# In seconds - try during 1h, if fail message will be deleted
+max_time: 3600
+# Try not more 10 times
+max_attempts: 10
+
+# If send fail, sleep sleep_time  seconds
+sleep_time: 5
+
