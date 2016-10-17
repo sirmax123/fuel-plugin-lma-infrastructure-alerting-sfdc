@@ -24,7 +24,6 @@ import os
 import sys
 import yaml
 import json
-# import shutil
 import socket
 import dateutil.parser
 from argparse import ArgumentParser

@@ -17,7 +17,7 @@ from datetime import datetime
 from functools import partial
 
 
-def callback2(ch, method, properties, body, config, LOG, sfdc_client, connection):
+def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
 
     LOG.debug('Starting ... ')
     environment = config['environment']
@@ -172,9 +172,7 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, connection
         # publish new modified message
 
 
-        channel_new = connection.channel()
-        channel_new.queue_declare(queue=amqp_queue_name, durable=True)
-        channel_new.basic_publish(exchange='',
+        channel.basic_publish(exchange='',
                       routing_key = amqp_queue_name,
                       body = json.dumps(new_body),
                       properties = properties)
@@ -263,7 +261,7 @@ def main():
     sfdc_client = Client(sfdc_oauth2)
 
 
-    callback = partial(callback2, config=config, LOG=LOG, sfdc_client = sfdc_client, connection = connection )
+    callback = partial(callback2, config=config, LOG=LOG, sfdc_client = sfdc_client, channel = channel )
 
     channel.basic_consume(callback,queue=amqp_queue_name)
     channel.start_consuming()
