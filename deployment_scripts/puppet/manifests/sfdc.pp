@@ -32,6 +32,19 @@ $sfdc_environment = $plugin['environment']
 $sfdc_organization_id = $plugin['sfdc_organization_id']
 
 
+amqp_host = $plugin['amqp_host']
+amqp_port = $plugin['amqp_port']
+amqp_user = $plugin['amqp_user']
+amqp_password = $plugin['amqp_password']
+amqp_queue_name = $plugin['amqp_queue_name']
+
+host_regexp = $plugin['host_regexp']
+log_file = $plugin['log_file']
+
+max_time = $plugin['max_time']
+max_attempts = $plugin['max_attempts']
+sleep_time = $plugin['sleep_time']
+
 
 class { 'lma_infrastructure_alerting_sfdc':
   auth_url        =>  $sfdc_auth_url,

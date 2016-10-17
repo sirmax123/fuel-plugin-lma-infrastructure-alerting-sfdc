@@ -41,10 +41,10 @@ class lma_infrastructure_alerting_sfdc (
                   $plugin_lib_file, $plugin_file, $plugin_config_file, $plugin_nagios_config_file, $plugin_log_file,
                   $nagios_service_name, $nagios_contacts_file, $nagios_commands_file, $logrotate_config)
 
-  service { "${nagios_service_name}":
-      ensure => running,
-      enable => true,
-    }
+#  service { "${nagios_service_name}":
+#      ensure => running,
+#      enable => true,
+#    }
 
   $files = {
     "${plugin_dir}" => {
@@ -77,6 +77,11 @@ class lma_infrastructure_alerting_sfdc (
     "${nagios_commands_file}" => {
       content => template('lma_infrastructure_alerting_sfdc/sfdc_commands.cfg.erb'),
     },
+    "${plugin_daemon_file}" => {
+      source => 'puppet:///modules/lma_infrastructure_alerting_sfdc/sfdc_sender.py',
+      mode   => '0755',
+    },
+
   }
 
   $file_defaults = {
@@ -84,10 +89,29 @@ class lma_infrastructure_alerting_sfdc (
     owner => 'nagios',
     group => 'nagios',
     mode  => '0644',
-    notify => Service[$nagios_service_name],
+#    notify => Service[$nagios_service_name],
   }
 
   create_resources(file, $files, $file_defaults)
+
+
+  file { '/etc/init/sfdc_sender.conf':
+      ensure  => file,
+      mode    => '0700',
+      owner   => 'root',
+      group   => 'root',
+      content => template('lma_infrastructure_alerting_sfdc/sfdc_sender.conf.erb'),
+    } ->
+
+  package { $packages: ensure => 'installed' } ->
+
+
+  service { "sfdc_sender":
+      ensure => running,
+      enable => true,
+    }
+
+
 
   notify {'lma_infrastructure_alerting_sfdc end': }
 }
