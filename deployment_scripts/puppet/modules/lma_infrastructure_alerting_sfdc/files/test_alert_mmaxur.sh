@@ -13,7 +13,7 @@ STATE="OK"
 #STATE="CRITICAL"
 
 
-SCRIPT_NAME='./sfdc_nagios_sender.py'
+SCRIPT_NAME='./sfdc_nagios.py'
 #CONFIG_NAME='/usr/lib/nagios/plugins/sfdc/sfdc_nagios.yaml'
 CONFIG_NAME='./sfdc_nagios.yaml'
 LOG_NAME='./nagios_to_sfdc_sender.log'

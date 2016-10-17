@@ -28,8 +28,10 @@ import json
 import socket
 import dateutil.parser
 from argparse import ArgumentParser
-from salesforce import OAuth2, Client
 from datetime import datetime
+import pika
+import re
+import time
 
 
 LOG = None
@@ -39,6 +41,17 @@ DELTA_SECONDS=3000000000
 def main():
     parser = ArgumentParser()
     parser.add_argument('-c', '--config-file', default='config.yml')
+
+
+    parser.add_argument('--syslog', action='store_true', default=False,
+                           help='Log to syslog')
+
+    parser.add_argument('--debug', action='store_true', default=False,
+                           help='Enable debug log level')
+
+    parser.add_argument('--log_file', default=sys.stdout,
+                           help='Log file. default: stdout. Ignored if logging configured to syslog')
+
 
     parser.add_argument('--description', required=True,
                            help='Description (use "-" to use stdin)' )
@@ -53,14 +66,9 @@ def main():
     parser.add_argument('--service_description', required=False, help='Service Description. Nagios variable - $SERVICEDESC$')
     parser.add_argument('--long_date_time',      required=True,  help='Date and time. Nagios variable - $LONGDATETIME$' )
 
-    parser.add_argument('--syslog', action='store_true', default=False,
-                           help='Log to syslog')
+    parser.add_argument('--service_output',  required=False, help='Service Output. Nagios variable - $SERVICEOUTPUT$')
 
-    parser.add_argument('--debug', action='store_true', default=False,
-                           help='Enable debug log level')
-
-    parser.add_argument('--log_file', default=sys.stdout,
-                           help='Log file. default: stdout. Ignored if logging configured to syslog')
+    parser.add_argument('--long_service_output', required=False, help='Service Long Output. Nagios variable - $$LONGSERVICEOUTPUT$')
 
 
 
@@ -84,10 +92,22 @@ def main():
         '[-] %(message)s'.format(socket.getfqdn()),
         datefmt='%Y-%m-%d %H:%M:%S'
     )
+
     handler.setFormatter(formatter)
     LOG.setLevel(log_level)
     LOG.addHandler(handler)
 
+
+
+# parse config file
+    with open(args.config_file) as fp:
+        config = yaml.load(fp)
+        amqp_host = config['amqp_host']
+        amqp_port = int(config['amqp_port'])
+        amqp_user = config['amqp_user']
+        amqp_password = config['amqp_password']
+        amqp_queue_name = config['amqp_queue_name']
+        host_regexp = config['host_regexp']
 
 # Read from stdin if desctiption defined as '-'
     if  args.description == '-':
@@ -101,7 +121,6 @@ def main():
         'CRITICAL': '090 Critical',
         }
 
-
     nagios_data = {
         'state':             state[str(args.state).upper()],
         'notification_type': args.notification_type,
@@ -112,167 +131,66 @@ def main():
 
     if args.service_description:
         nagios_data['service_description'] = args.service_description
-    else:
-        nagios_data['service_description'] = ''
-
-    LOG.debug('Nagios data: {} '.format(nagios_data))
 
 
-
-    with open(args.config_file) as fp:
-        config = yaml.load(fp)
-
-    if 'sfdc_organization_id' in config:
-        organizationId = config['sfdc_organization_id']
-    else:
-        organizationId = None
-
-    sfdc_oauth2 = OAuth2(client_id=config['sfdc_client_id'],
-                         client_secret=config['sfdc_client_secret'],
-                         username=config['sfdc_username'],
-                         password=config['sfdc_password'],
-                         auth_url=config['sfdc_auth_url'],
-                         organizationId = organizationId )
-
-    environment = config['environment']
-
-# Alert ID shoud be uniq for env
-    Alert_ID =  '{}--{}'.format(environment,args.host_name)
 
     if args.service_description:
         nagios_data['service_description'] = args.service_description
-        Alert_ID = '{}--{}'.format(Alert_ID, args.service_description)
+    else:
+        nagios_data['service_description'] = ''
 
-    LOG.debug('Alert_Id: {} '.format(Alert_ID))
+    if args.service_output:
+        nagios_data['service_output'] = args.service_output
+    else:
+        nagios_data['service_output'] = ''
 
-
-    sfdc_client = Client(sfdc_oauth2)
-
-
-
-    payload = {
-        'notification_type': args.notification_type,
-        'description':       args.description,
-        'long_date_time':    args.long_date_time,
-         }
-
-    data = {
-        'IsMosAlert__c':     'true',
-        'Description':       json.dumps(payload, sort_keys=True, indent=4),
-        'Alert_ID__c':       Alert_ID,
-        'Subject':           Alert_ID,
-        'Environment2__c':   environment,
-        'Alert_Priority__c': nagios_data['state'],
-        'Alert_Host__c':     nagios_data['host_name'],
-        'Alert_Service__c':  nagios_data['service_description'],
-
-#        'sort_marker__c': sort_marker,
-        }
-
-    feed_data_body = {
-        'Description':    payload,
-        'Alert_Id':       Alert_ID,
-        'Cloud_ID':       environment,
-        'Alert_Priority': nagios_data['state'],
-        'Status':         "New",
-
-        }
+    if args.long_service_output:
+        nagios_data['long_service_output'] = args.long_service_output
+        nagios_data['affected_hosts'] = list(set(re.findall(host_regexp, nagios_data['long_service_output'])))
+    else:
+        nagios_data['long_service_output'] = ''
+        nagios_data['affected_hosts'] = []
 
 
+
+    nagios_data['publishing_time'] = int(time.time())
+    nagios_data['sfdc_attempts'] = 0
+
+    LOG.debug('Nagios data: \n {} \n '.format(json.dumps(nagios_data,sort_keys=True, indent=4)))
+
+
+#Alert Payloadb should be in the first comment of the alert.
+#Alert name: rabbitmq-queue-warning
+#Service: rabbitmq
+#Rule: rule=avg(rabbitmq_messages)=200, current=200.67
+#Date/Time: Fri Sept 9 01:20:27 UTC 2016
+
+
+    credentials = pika.PlainCredentials(amqp_user, amqp_password)
+    pareameters = pika.ConnectionParameters(amqp_host, amqp_port, '/', credentials)
 
     try:
-      new_case = sfdc_client.create_case(data)
+        connection = pika.BlockingConnection(pareameters)
     except Exception as E:
-       LOG.debug(E)
-       sys.exit(1)
-
-
-#    print(new_case)
-    LOG.debug('New Caset status code: {} '.format(new_case.status_code))
-    LOG.debug('New Case data: {} '.format(new_case.text))
-
-
-#  If Case exist
-    if (new_case.status_code  == 400) and (new_case.json()[0]['errorCode'] == 'DUPLICATE_VALUE'):
-        LOG.debug('Code: {}, Error message: {} '.format(new_case.status_code, new_case.text))
-        # Find Case ID
-        ExistingCaseId = new_case.json()[0]['message'].split(" ")[-1]
-        LOG.debug('ExistingCaseId: {} '.format(ExistingCaseId))
-        # Get Case 
-        current_case = sfdc_client.get_case(ExistingCaseId).json()
-        LOG.debug("Existing Case: \n {}".format(json.dumps(current_case,sort_keys=True, indent=4)))
-
-        LastModifiedDate=current_case['LastModifiedDate']
-        ExistingCaseStatus=current_case['Status']
-        feed_data_body['Status'] = ExistingCaseStatus
-
-        Now=datetime.now().replace(tzinfo=None)
-        delta = Now - dateutil.parser.parse(LastModifiedDate).replace(tzinfo=None)
-
-        LOG.debug("Check if Case should be marked as OUTDATED. Case modification date is: {} , Now: {} , Delta(sec): {}, OutdateDelta(sec): {}".format(LastModifiedDate, Now, delta.seconds, DELTA_SECONDS))
-        if (delta.seconds > DELTA_SECONDS):
-            # Old Case is outdated
-            new_data = {
-               'Alert_Id__c': '{}_closed_at_{}'.format(current_case['Alert_ID__c'],datetime.strftime(datetime.now(), "%Y.%m.%d-%H:%M:%S")),
-               'Alert_Priority__c': '000 OUTDATED',
-            }
-            u = sfdc_client.update_case(id=ExistingCaseId, data=new_data)
-            LOG.debug('Upate status code: {} \n\nUpate content: {}\n\n Upate headers: {}\n\n'.format(u.status_code,u.content, u.headers))
-
-            # Try to create new caset again 
-            try:
-                new_case = sfdc_client.create_case(data)
-            except Exception as E:
-                LOG.debug(E)
-                sys.exit(1)
-            else:
-               # Case was outdated an new was created
-                CaseId = new_case.json()['id']
-                LOG.debug("Case was just created, old one was marked as Outdated")
-                # Add commnet, because Case head should conains  LAST data  overriden on any update
-                CaseId = new_case.json()['id']
-
-                feeditem_data = {
-                  'ParentId':   CaseId,
-                  'Visibility': 'AllUsers',
-                  'Body': json.dumps(feed_data_body, sort_keys=True, indent=4),
-                }
-                LOG.debug("FeedItem Data: {}".format(json.dumps(feeditem_data, sort_keys=True, indent=4)))
-                add_feed_item = sfdc_client.create_feeditem(feeditem_data)
-                LOG.debug('Add FeedItem status code: {} \n Add FeedItem reply: {} '.format(add_feed_item.status_code, add_feed_item.text))
-
-        else:
-            # Update Case
-            u = sfdc_client.update_case(id=ExistingCaseId, data=data)
-            LOG.debug('Upate status code: {} '.format(u.status_code))
-
-            feeditem_data = {
-                'ParentId':   ExistingCaseId,
-                'Visibility': 'AllUsers',
-                'Body': json.dumps(feed_data_body, sort_keys=True, indent=4),
-            }
-
-            LOG.debug("FeedItem Data: {}".format(json.dumps(feeditem_data, sort_keys=True, indent=4)))
-            add_feed_item = sfdc_client.create_feeditem(feeditem_data)
-            LOG.debug('Add FeedItem status code: {} \n Add FeedItem reply: {} '.format(add_feed_item.status_code, add_feed_item.text))
-
-# Else If Case did not exist before and was just  created
-    elif  (new_case.status_code  == 201):
-        LOG.debug("Case was just created")
-        # Add commnet, because Case head should conains  LAST data  overriden on any update
-        CaseId = new_case.json()['id']
-        feeditem_data = {
-          'ParentId':   CaseId,
-          'Visibility': 'AllUsers',
-          'Body': json.dumps(feed_data_body, sort_keys=True, indent=4),
-        }
-        LOG.debug("FeedItem Data: {}".format(json.dumps(feeditem_data, sort_keys=True, indent=4)))
-        add_feed_item = sfdc_client.create_feeditem(feeditem_data)
-        LOG.debug('Add FeedItem status code: {} \n Add FeedItem reply: {} '.format(add_feed_item.status_code, add_feed_item.text))
-
-    else:
-        LOG.debug("Unexpected error: Case was not created (code !=201) and Case does not exist (code != 400)")
+        LOG.debug(E)
         sys.exit(1)
+
+    properties=pika.BasicProperties(delivery_mode = 2,)
+
+    channel = connection.channel()
+    channel.queue_declare(queue=amqp_queue_name, durable=True)
+
+
+    channel.basic_publish(exchange='',
+                      routing_key = amqp_queue_name,
+                      body = json.dumps(nagios_data),
+                      properties = properties)
+
+    connection.close()
+
+
+
+
 
 
 if __name__ == '__main__':

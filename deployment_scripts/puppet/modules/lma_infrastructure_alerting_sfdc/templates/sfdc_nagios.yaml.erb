@@ -20,7 +20,7 @@ amqp_queue_name: 'test_queue'
 host_regexp: 'host=[a-z,A-Z,\-,0-9,\.]*'
 
 
-log_file: '/var/log/sfdc_sender.log'
+log_file: '<%= @plugin_log_file %>'
 
 # TTL
 # In seconds - try during 1h, if fail message will be deleted
