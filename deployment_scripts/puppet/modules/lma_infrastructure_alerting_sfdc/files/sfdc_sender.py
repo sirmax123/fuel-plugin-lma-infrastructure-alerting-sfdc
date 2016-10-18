@@ -61,7 +61,7 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
     if nagios_data['affected_hosts'] != []:
         Subject  =  '{}  {}'.format(Subject,nagios_data['affected_hosts'][0])
     else:
-        Subject  =  '{}  {}'.format(Subject,nagios_data['host_name'][0])
+        Subject  =  '{}  {}'.format(Subject,nagios_data['host_name'])
 
     Alert_ID =  '{}--{}'.format(Alert_ID,nagios_data['host_name'])
 
