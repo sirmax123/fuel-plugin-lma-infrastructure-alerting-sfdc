@@ -1,14 +1,12 @@
-import urllib3
-urllib3.disable_warnings()
-
 import requests
 import json
 import xml.dom.minidom
 import logging
-
-
+import urllib3
+urllib3.disable_warnings()
 
 LOG = logging.getLogger()
+
 
 class OAuth2(object):
     def __init__(self, client_id, client_secret, username, password, auth_url=None, organizationId=None):
@@ -37,8 +35,6 @@ class OAuth2(object):
             elementValue = elementsByName[0].toxml().replace('<' + elementName + '>', '').replace('</' + elementName + '>', '')
         return elementValue
 
-
-
     def authenticate_soap(self):
 
         soap_url = '{}/services/Soap/u/36.0'.format(self.auth_url)
@@ -62,8 +58,7 @@ class OAuth2(object):
                     <urn:password>{password}</urn:password>
                 </urn:login>
             </soapenv:Body>
-        </soapenv:Envelope>""".format(
-        username=self.username, password=self.password, organizationId=self.organizationId)
+        </soapenv:Envelope>""".format(username=self.username, password=self.password, organizationId=self.organizationId)
 
         login_soap_request_headers = {
             'content-type': 'text/xml',
@@ -71,21 +66,18 @@ class OAuth2(object):
             'SOAPAction': 'login'
         }
 
-        response = requests.post(soap_url,
-                             login_soap_request_body,
-                             verify=None,
-                             headers=login_soap_request_headers)
+        response = requests.post(soap_url, login_soap_request_body, verify=None, headers=login_soap_request_headers)
+
         LOG.debug(response)
         LOG.debug(response.status_code)
         LOG.debug(response.text)
-
 
         session_id = self.getUniqueElementValueFromXmlString(response.content, 'sessionId')
         server_url = self.getUniqueElementValueFromXmlString(response.content, 'serverUrl')
 
         response_json = {
-            'access_token': session_id, 
-            'instance_url': self.auth_url 
+            'access_token': session_id,
+            'instance_url': self.auth_url
         }
 
         session_id = self.getUniqueElementValueFromXmlString(response.content, 'sessionId')
@@ -106,17 +98,14 @@ class OAuth2(object):
         response.raise_for_status()
         return response.json()
 
-
     def authenticate(self, **kwargs):
         if self.organizationId:
             LOG.debug('self.organizationId={}'.format(self.organizationId))
             LOG.debug('Auth method = SOAP')
-            return  self.authenticate_soap( **kwargs )
+            return self.authenticate_soap(**kwargs)
         else:
             LOG.debug('Auth method = REST')
-            return  self.authenticate_rest( **kwargs )
-
-
+            return self.authenticate_rest(**kwargs)
 
 
 class Client(object):
@@ -141,18 +130,14 @@ class Client(object):
     def get_mos_alert_comment(self, id):
         return self.get('/services/data/v36.0/sobjects/MOS_Alert_Comment__c/{}'.format(id))
 
-
     def del_mos_alert_comment(self, id):
         return self.delete('/services/data/v36.0/sobjects/MOS_Alert_Comment__c/{}'.format(id))
-
 
     def create_feeditem(self, data):
         return self.post('/services/data/v36.0/sobjects/FeedItem', data=json.dumps(data), headers={"content-type": "application/json"})
 
-
     def create_case(self, data):
         return self.post('/services/data/v36.0/sobjects/Case', data=json.dumps(data), headers={"content-type": "application/json"})
-
 
     def create_ticket(self, data):
         return self.post('/services/data/v36.0/sobjects/Case', data=json.dumps(data), headers={"content-type": "application/json"}).json()
@@ -166,7 +151,6 @@ class Client(object):
     def del_mos_alert(self, id):
         return self.delete('/services/data/v36.0/sobjects/MOS_Alerts__c/{}'.format(id))
 
-
     def update_ticket(self, id, data):
         return self.patch('/services/data/v36.0/sobjects/proxyTicket__c/{}'.format(id), data=json.dumps(data), headers={"content-type": "application/json"})
 
@@ -175,7 +159,6 @@ class Client(object):
 
     def update_case(self, id, data):
         return self.patch('/services/data/v36.0/sobjects/Case/{}'.format(id), data=json.dumps(data), headers={"content-type": "application/json"})
-
 
     def update_comment(self, id, data):
         return self.patch('/services/data/v36.0/sobjects/proxyTicketComment__c/{}'.format(id), data=json.dumps(data), headers={"content-type": "application/json"})
@@ -196,6 +179,7 @@ class Client(object):
                         params=dict(q="SELECT Comment__c, CreatedById, Id "
                                       "FROM proxyTicketComment__c "
                                       "WHERE external_id__c='{}'".format(comment_id))).json()
+
     def search(self, query):
         response = self.get('/services/data/v36.0/query', params=dict(q=query)).json()
         while True:
@@ -219,11 +203,8 @@ class Client(object):
     def delete(self, url, **kwargs):
         return self._request('delete', url, **kwargs)
 
-
     def delete1(self, url, **kwargs):
         return self._request('post', url, **kwargs)
-
-
 
     def _request(self, method, url, headers=None, **kwargs):
         if not headers:
@@ -244,9 +225,9 @@ class Client(object):
 # Debug only
         LOG.debug("salesforce.py: Response code: {}".format(response.status_code))
         try:
-            LOG.debug("salesforce.py: Response content: {}".format(json.dumps(response.json(),sort_keys=True, indent=4, separators=(',', ': '))))
+            LOG.debug("salesforce.py: Response content: {}".format(json.dumps(response.json(), sort_keys=True, indent=4, separators=(',', ': '))))
 
-            if  (response.json()[0]['errorCode'] == 'INVALID_SESSION_ID'):
+            if (response.json()[0]['errorCode'] == 'INVALID_SESSION_ID'):
                 LOG.debug("salesforce.py: Trying  gain")
                 result = self.oauth2.authenticate()
                 self.access_token = result['access_token']
@@ -255,6 +236,5 @@ class Client(object):
                 response = requests.request(method, url, headers=headers, verify=None, **kwargs)
         except Exception:
             LOG.debug("salesforce.py: Response content: {}".format(response.content))
-
 
         return response
