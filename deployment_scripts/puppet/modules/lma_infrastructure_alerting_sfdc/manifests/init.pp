@@ -25,7 +25,6 @@ class lma_infrastructure_alerting_sfdc (
   $amqp_hosts,
   $amqp_user,
   $amqp_password,
-  $amqp_queue_name,
   $host_regexp,
   $log_file,
   $max_time,
@@ -41,7 +40,7 @@ class lma_infrastructure_alerting_sfdc (
   $nagios_contacts_file       =  $::lma_infrastructure_alerting_sfdc::params::nagios_contacts_file,
   $nagios_commands_file       =  $::lma_infrastructure_alerting_sfdc::params::nagios_commands_file,
   $logrotate_config           =  $::lma_infrastructure_alerting_sfdc::params::logrotate_config,
-  $sfdc_queue_name            =  $::lma_infrastructure_alerting_sfdc::params::queue_name,
+  $amqp_queue_name            =  $::lma_infrastructure_alerting_sfdc::params::queue_name,
 
 ) inherits lma_infrastructure_alerting_sfdc::params {
 
