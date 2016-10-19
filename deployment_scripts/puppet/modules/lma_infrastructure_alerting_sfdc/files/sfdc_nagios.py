@@ -123,8 +123,8 @@ def main():
 
     for amqp_conn_string in itertools.cycle(amqp_hosts):
 
-        amqp_host = amqp_conn_string.split(':')[0]
-        amqp_port = int(amqp_conn_string.split(':')[1])
+        amqp_host = amqp_conn_string.split(':')[0].strip()
+        amqp_port = int(amqp_conn_string.split(':')[1].strip())
 
         credentials = pika.PlainCredentials(amqp_user, amqp_password)
         pareameters = pika.ConnectionParameters(amqp_host, amqp_port, '/', credentials)
