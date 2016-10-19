@@ -52,7 +52,7 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
     Alert_ID  = environment
     Subject = ''
 
-    if nagios_data['service_description']  != "":
+    if nagios_data['service_description']  != '':
         Alert_ID = '{}--{}'.format(Alert_ID, nagios_data['service_description'])
         Subject =  nagios_data['service_description']
         payload['service'] = nagios_data['service_description']
@@ -109,7 +109,7 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
         if (new_case.status_code  == 400) and (new_case.json()[0]['errorCode'] == 'DUPLICATE_VALUE'):
             LOG.info('Code: {}, Error message: {} '.format(new_case.status_code, new_case.text))
             # Find Case ID
-            ExistingCaseId = new_case.json()[0]['message'].split(" ")[-1]
+            ExistingCaseId = new_case.json()[0]['message'].split(' ')[-1]
 
             u = sfdc_client.update_case(id=ExistingCaseId, data=alert_data)
             LOG.info('Upate status code: {} '.format(u.status_code))
@@ -120,7 +120,7 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
                     'Body':        json.dumps(feed_data_body, sort_keys=True, indent=4)
             }
 
-            LOG.info("FeedItem Data: {}".format(json.dumps(feeditem_data, sort_keys=True, indent=4)))
+            LOG.info('FeedItem Data: {}'.format(json.dumps(feeditem_data, sort_keys=True, indent=4)))
             add_feed_item = sfdc_client.create_feeditem(feeditem_data)
             LOG.info('Add FeedItem status code: {} \n Add FeedItem reply: {} '.format(add_feed_item.status_code, add_feed_item.text))
             # Ack
@@ -128,7 +128,7 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
             return
         # Else If Case did not exist before and was just  created
         elif  (new_case.status_code  == 201):
-            LOG.info("Case was just created")
+            LOG.info('Case was just created')
             # Add commnet, because Case head should conains  LAST data  overriden on any update
             CaseId = new_case.json()['id']
             feeditem_data = {
@@ -136,20 +136,20 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
                'Visibility': 'AllUsers',
                'Body': json.dumps(feed_data_body, sort_keys=True, indent=4),
             }
-            LOG.info("FeedItem Data: {}".format(json.dumps(feeditem_data, sort_keys=True, indent=4)))
+            LOG.info('FeedItem Data: {}'.format(json.dumps(feeditem_data, sort_keys=True, indent=4)))
             add_feed_item = sfdc_client.create_feeditem(feeditem_data)
             LOG.info('Add FeedItem status code: {} \n Add FeedItem reply: {} '.format(add_feed_item.status_code, add_feed_item.text))
             # Ack
             ch.basic_ack(delivery_tag = method.delivery_tag)
             return
         else:
-            LOG.info("Unexpected error: Case was not created (code !=201) and Case does not exist (code != 400), raising exeption!")
+            LOG.info('Unexpected error: Case was not created (code !=201) and Case does not exist (code != 400), raising exeption!')
             raise requests.exceptions.ConnectionError
 
     except requests.exceptions.ConnectionError as E:
         LOG.info(E)
 
-        LOG.info("Unexpected error: Case was not created (code !=201) and Case does not exist (code != 400) or connection error")
+        LOG.info('Unexpected error: Case was not created (code !=201) and Case does not exist (code != 400) or connection error')
         new_body = json.loads(str(body))
         LOG.info('Failed to sent, updating message:  \n {}  \n '.format(json.dumps(new_body,sort_keys=True, indent=4)))
 
@@ -203,9 +203,7 @@ def main():
     with open(args.config_file) as fp:
         config = yaml.safe_load(fp)
 
-        amqp_hosts       = config['amqp_hosts'].split()
-
-        print(amqp_hosts)
+        amqp_hosts       = config['amqp_hosts'].split(',')
 
 
         amqp_user       = config['amqp_user']

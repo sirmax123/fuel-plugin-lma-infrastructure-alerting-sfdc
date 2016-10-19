@@ -179,13 +179,13 @@ if __name__ == '__main__':
 
 
     parser.add_argument('--description', required=True,
-                           help='Description (use "-" to use stdin)' )
+                           help="Description (use '-' to use stdin)" )
 
     parser.add_argument('--notification_type',  required=True,
-                           help='Notification type (PROBLEM|RECOVERY|CUSTOM). Nagios variable - $NOTIFICATIONTYPE$" ')
+                           help='Notification type (PROBLEM|RECOVERY|CUSTOM). Nagios variable - $NOTIFICATIONTYPE$' ')
 
     parser.add_argument('--state',  required=True,
-                           help='Service ot Host (OK|WARNING|CRITICAL|UNCKNOWN). Nagios variable - $SERVICESTATE$" or $HOSTSTATE$ ')
+                           help='Service ot Host (OK|WARNING|CRITICAL|UNCKNOWN). Nagios variable - $SERVICESTATE$' or $HOSTSTATE$ ')
 
     parser.add_argument('--host_name',           required=True,  help='Host name. Nagios variable - $HOSTNAME$')
     parser.add_argument('--service_description', required=False, help='Service Description. Nagios variable - $SERVICEDESC$')
