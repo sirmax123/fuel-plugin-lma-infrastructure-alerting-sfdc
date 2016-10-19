@@ -257,8 +257,8 @@ def main():
 
     current_attempt  = 0
     for amqp_conn_string in itertools.cycle(amqp_hosts):
-        amqp_host = amqp_conn_string.split(':')[0]
-        amqp_port = int(amqp_conn_string.split(':')[1])
+        amqp_host = amqp_conn_string.split(':')[0].strip()
+        amqp_port = int(amqp_conn_string.split(':')[1].strip())
 
         try:
             LOG.info('Connecting to RabbitMQ,  amqp_conn_string = {},  amqp_host = {}, amqp_port = {}, current_attempt = {} '.format(amqp_conn_string, amqp_host, amqp_port, current_attempt))

@@ -3,7 +3,7 @@
 LONGDATETIME=`date`
 
 IP_ADDRESS=`/sbin/ip ro get 8.8.8.8 |  awk '(/src/) { print $7}'`
-HOSTNAME=" 00-global-clusters-env1"
+HOSTNAME="00-global-clusters-env1"
 SERVICEDESC="glance1"
 NOTIFICATIONTYPE="RECOVERY"
 COMMENT="COMMENT"
@@ -47,7 +47,7 @@ No datapoint have been received over the last 30 seconds (UNKNOWN, rule=min(mysq
 
 
 
-/usr/bin/printf "%b" "Notification Type: ${NOTIFICATIONTYPE} \n State: OK\n\n Date/Time: ${LONGDATETIME} \n Host: 00-global-clusters-env1 (Address: ${IP_ADDRESS})\n Service: ${SERVICE} \n Additional Info:\n ${SERVICE}%5Cnno+details\n \n\n Comment: ${COMMENT}" \
+/usr/bin/printf "%b" "Notification Type: ${NOTIFICATIONTYPE} \n State: OK\n\n Date/Time: ${LONGDATETIME} \n Host: ${HOSTNAME} (Address: ${IP_ADDRESS})\n Service: ${SERVICE} \n Additional Info:\n ${SERVICE}%5Cnno+details\n \n\n Comment: ${COMMENT}" \
 | ${SCRIPT_NAME} \
                                -c  ${CONFIG_NAME} \
                                --long_date_time "$LONGDATETIME" \
@@ -65,7 +65,7 @@ No datapoint have been received over the last 30 seconds (UNKNOWN, rule=min(mysq
 
 
 
-/usr/bin/printf "%b" "Notification Type: ${NOTIFICATIONTYPE} \n State: OK\n\n Date/Time: ${LONGDATETIME} \n Host: 00-global-clusters-env1 (Address: ${IP_ADDRESS})\n Service: ${SERVICE} \n Additional Info:\n ${SERVICE}%5Cnno+details\n \n\n Comment: ${COMMENT}" \
+/usr/bin/printf "%b" "Notification Type: ${NOTIFICATIONTYPE} \n State: OK\n\n Date/Time: ${LONGDATETIME} \n Host: ${HOSTNAME} (Address: ${IP_ADDRESS})\n Service: ${SERVICE} \n Additional Info:\n ${SERVICE}%5Cnno+details\n \n\n Comment: ${COMMENT}" \
 | ${SCRIPT_NAME} \
                                -c  ${CONFIG_NAME} \
                                --long_date_time "$LONGDATETIME" \

@@ -66,7 +66,7 @@ def main():
 # parse config file
     with open(args.config_file) as fp:
         config = yaml.safe_load(fp)
-        amqp_hosts      = config['amqp_hosts'].split()
+        amqp_hosts      = config['amqp_hosts'].split(',')
         amqp_user       = config['amqp_user']
         amqp_password   = config['amqp_password']
         amqp_queue_name = config['amqp_queue_name']
