@@ -27,5 +27,6 @@ class lma_infrastructure_alerting_sfdc::params {
   $nagios_commands_file       =  '/etc/nagios3/conf.d/sfdc_commands.cfg'
   $logrotate_config           =  '/etc/logrotate.d/sfdc_nagios'
   $packages                   =  [ 'python-pika' ]
+  $queue_name                 =  'sfdc_queue'
 }
 
