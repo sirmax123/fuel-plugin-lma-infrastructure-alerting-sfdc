@@ -1,22 +1,6 @@
 #!/usr/bin/python
-#    Copyright 2016 Mirantis, Inc.
-#
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
-#    not use this file except in compliance with the License. You may obtain
-#    a copy of the License at
-#
-#         http://www.apache.org/licenses/LICENSE-2.0
-#
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#    License for the specific language governing permissions and limitations
-#    under the License.
-#
-# Configure the Nagios server with the CGI service for passive checks.
-# Configure virtual hosts for monitoring the clusters of global services and nodes
-#
 
+import urllib3
 import logging
 import os
 import sys
@@ -26,13 +10,135 @@ import socket
 import dateutil.parser
 from argparse import ArgumentParser
 from datetime import datetime
+from salesforce import OAuth2, Client
 import pika
 import re
 import time
 import itertools
+import requests
 
-
+urllib3.disable_warnings()
 LOG = None
+
+
+def send_to_sfdc(nagios_data, config_file, LOG):
+    with open(config_file) as fp:
+        config = yaml.safe_load(fp)
+        amqp_hosts = config['amqp_hosts'].split(',')
+        amqp_user = config['amqp_user']
+        amqp_password = config['amqp_password']
+        amqp_queue_name = config['amqp_queue_name']
+        host_regexp = config['host_regexp']
+        max_attempts = int(config['max_attempts'])
+        sleep_time = int(config['sleep_time'])
+        environment = config['environment']
+        sfdc_client_id = config['sfdc_client_id']
+        sfdc_client_secret = config['sfdc_client_secret']
+        sfdc_username = config['sfdc_username']
+        sfdc_password = config['sfdc_password']
+        sfdc_auth_url = config['sfdc_auth_url']
+        sfdc_organization_id = config['sfdc_organization_id']
+
+    sfdc_oauth2 = OAuth2(client_id=sfdc_client_id,
+                         client_secret=sfdc_client_secret,
+                         username=sfdc_username,
+                         password=sfdc_password,
+                         auth_url=sfdc_auth_url,
+                         organizationId=sfdc_organization_id)
+
+    sfdc_client = Client(sfdc_oauth2)
+
+    payload = {
+        'long_date_time': nagios_data['long_date_time']
+    }
+
+    Alert_ID = environment
+    Subject = ''
+
+    if nagios_data['service_description'] != '':
+        Alert_ID = '{}--{}'.format(Alert_ID, nagios_data['service_description'])
+        Subject = nagios_data['service_description']
+        payload['service'] = nagios_data['service_description']
+
+    if nagios_data['affected_hosts'] != []:
+        Subject = '{}  {}'.format(Subject, nagios_data['affected_hosts'][0])
+    else:
+        Subject = '{}  {}'.format(Subject, nagios_data['host_name'])
+
+    Alert_ID = '{}--{}'.format(Alert_ID, nagios_data['host_name'])
+
+    if nagios_data['long_service_output'] != '':
+        payload['description'] = nagios_data['long_service_output']
+
+    alert_data = {
+        'IsMosAlert__c':     'true',
+        'Description':       json.dumps(payload, sort_keys=True, indent=4),
+        'Alert_ID__c':       Alert_ID,
+        'Subject':           Subject,
+        'Environment2__c':   environment,
+        'Alert_Priority__c': nagios_data['state'],
+        'Alert_Host__c':     nagios_data['host_name'],
+        'Alert_Service__c':  nagios_data['service_description']
+        }
+
+    feed_data_body = {
+        'Description':    json.dumps(payload, sort_keys=True, indent=4),
+        'Alert_Id':       Alert_ID,
+        'Cloud_ID':       environment,
+        'Alert_Priority': nagios_data['state'],
+        'Status':         'New',
+        }
+
+    LOG.info(json.dumps(alert_data, sort_keys=True, indent=4))
+
+    try:
+        new_case = sfdc_client.create_case(alert_data)
+        LOG.info('New Caset status code: {} '.format(new_case.status_code))
+        LOG.info('New Case data: {} '.format(new_case.text))
+
+        #  If Case exist
+        if (new_case.status_code == 400) and (new_case.json()[0]['errorCode'] == 'DUPLICATE_VALUE'):
+            LOG.info('Code: {}, Error message: {} '.format(new_case.status_code, new_case.text))
+            # Find Case ID
+            ExistingCaseId = new_case.json()[0]['message'].split(' ')[-1]
+
+            u = sfdc_client.update_case(id=ExistingCaseId, data=alert_data)
+            LOG.info('Upate status code: {} '.format(u.status_code))
+
+            feeditem_data = {
+                    'ParentId':    ExistingCaseId,
+                    'Visibility': 'AllUsers',
+                    'Body':        json.dumps(feed_data_body, sort_keys=True, indent=4)
+            }
+
+            LOG.info('FeedItem Data: {}'.format(json.dumps(feeditem_data, sort_keys=True, indent=4)))
+            add_feed_item = sfdc_client.create_feeditem(feeditem_data)
+            LOG.info('Add FeedItem status code: {} \n Add FeedItem reply: {} '.format(add_feed_item.status_code, add_feed_item.text))
+            return
+        # Else If Case did not exist before and was just  created
+        elif (new_case.status_code == 201):
+            LOG.info('Case was just created')
+            # Add commnet, because Case head should conains  LAST data  overriden on any update
+            CaseId = new_case.json()['id']
+            feeditem_data = {
+               'ParentId':   CaseId,
+               'Visibility': 'AllUsers',
+               'Body': json.dumps(feed_data_body, sort_keys=True, indent=4),
+            }
+            LOG.info('FeedItem Data: {}'.format(json.dumps(feeditem_data, sort_keys=True, indent=4)))
+            add_feed_item = sfdc_client.create_feeditem(feeditem_data)
+            LOG.info('Add FeedItem status code: {} \n Add FeedItem reply: {} '.format(add_feed_item.status_code, add_feed_item.text))
+            return
+        else:
+            LOG.info('Unexpected error: Case was not created (code !=201) and Case does not exist (code != 400), raising exeption!')
+            raise requests.exceptions.ConnectionError
+
+    except requests.exceptions.ConnectionError as E:
+        LOG.info(E)
+
+        LOG.info('Unexpected error: Case was not created (code !=201) and Case does not exist (code != 400) or connection error')
+        new_body = json.loads(str(body))
+        LOG.info('Failed to sent, updating message:  \n {}  \n '.format(json.dumps(new_body, sort_keys=True, indent=4)))
 
 
 def main():
@@ -59,7 +165,7 @@ def main():
     handler.setFormatter(formatter)
     LOG.setLevel(log_level)
     LOG.addHandler(handler)
-    
+
     logging.getLogger("pika").setLevel(logging.INFO)
 
 # parse config file
@@ -72,6 +178,13 @@ def main():
         host_regexp = config['host_regexp']
         max_attempts = int(config['max_attempts'])
         sleep_time = int(config['sleep_time'])
+        environment = config['environment']
+        sfdc_client_id = config['sfdc_client_id']
+        sfdc_client_secret = config['sfdc_client_secret']
+        sfdc_username = config['sfdc_username']
+        sfdc_password = config['sfdc_password']
+        sfdc_auth_url = config['sfdc_auth_url']
+        sfdc_organization_id = config['sfdc_organization_id']
 
 # Read from stdin if desctiption defined as '-'
     if args.description == '-':
@@ -134,7 +247,10 @@ def main():
             channel = connection.channel()
             channel.queue_declare(queue=amqp_queue_name, durable=True)
 
-            channel.basic_publish(exchange='', routing_key=amqp_queue_name, body=json.dumps(nagios_data), properties=properties)
+            channel.basic_publish(exchange='',
+                                  routing_key=amqp_queue_name,
+                                  body=json.dumps(nagios_data),
+                                  properties=properties)
 
             connection.close()
             LOG.info('Sent to  amqp_conn_string = {},  amqp_host = {}, amqp_port = {} '.format(amqp_conn_string, amqp_host, amqp_port))
@@ -145,7 +261,10 @@ def main():
             LOG.info(E)
 
             if max_attempts <= 0:
-                LOG.info('Failed to sent Exiting. max_attempts  = {} '.format(max_attempts))
+                LOG.info('Failed to sent. max_attempts  = {} '.format(max_attempts))
+                LOG.info('Trying to send to SFDC w/o rabbit.')
+                send_to_sfdc(nagios_data=nagios_data, config_file=args.config_file, LOG=LOG)
+
                 LOG.info('Exiting with code = 1')
                 sys.exit(1)
             else:
@@ -177,7 +296,7 @@ if __name__ == '__main__':
     parser.add_argument('--state',  required=True,
                         help='Service ot Host (OK|WARNING|CRITICAL|UNCKNOWN). Nagios variable - $SERVICESTATE$ or $HOSTSTATE$ ')
 
-    parser.add_argument('--host_name', required=True,  help='Host name. Nagios variable - $HOSTNAME$')
+    parser.add_argument('--host_name',           required=True,  help='Host name. Nagios variable - $HOSTNAME$')
     parser.add_argument('--service_description', required=False, help='Service Description. Nagios variable - $SERVICEDESC$')
     parser.add_argument('--long_date_time',      required=True,  help='Date and time. Nagios variable - $LONGDATETIME$')
 

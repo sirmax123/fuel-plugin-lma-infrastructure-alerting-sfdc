@@ -17,9 +17,6 @@ from functools import partial
 import itertools
 
 
-
-
-
 def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
 
     LOG.info('Starting ... ')
@@ -159,6 +156,7 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
         # publish new modified message
+
         channel.basic_publish(exchange='',
                               routing_key=amqp_queue_name,
                               body=json.dumps(new_body),
@@ -182,17 +180,13 @@ def main():
 # parse config file
     with open(args.config_file) as fp:
         config = yaml.safe_load(fp)
-
         amqp_hosts = config['amqp_hosts'].split(',')
-
         amqp_user = config['amqp_user']
         amqp_password = config['amqp_password']
         amqp_queue_name = config['amqp_queue_name']
-
         host_regexp = config['host_regexp']
         log_file = config['log_file']
         sleep_time = int(config['sleep_time'])
-
         environment = config['environment']
         sfdc_client_id = config['sfdc_client_id']
         sfdc_client_secret = config['sfdc_client_secret']
@@ -202,9 +196,7 @@ def main():
         sfdc_organization_id = config['sfdc_organization_id']
 
     LOG = logging.getLogger()
-
     handler = logging.FileHandler(log_file)
-
     log_level = logging.DEBUG
 
     formatter = logging.Formatter(
@@ -217,9 +209,9 @@ def main():
     LOG.setLevel(log_level)
     LOG.addHandler(handler)
 
-    print ' [*] Waiting for messages. To exit press CTRL+C'
     logging.getLogger("pika").setLevel(logging.INFO)
     LOG.info(' [*] Waiting for messages. To exit press CTRL+C')
+    print ' [*] Waiting for messages. To exit press CTRL+C'
 
     sfdc_oauth2 = OAuth2(client_id=sfdc_client_id,
                          client_secret=sfdc_client_secret,
