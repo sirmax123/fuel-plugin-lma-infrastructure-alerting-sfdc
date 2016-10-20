@@ -42,7 +42,7 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
     }
 
 # If affected_host is defined, use it for hostname,
-# otherwise use host_name, which is usually 'global'
+# otherwise use host_name, which is usually 'global-...'
 
     Alert_ID = environment
     Subject = ''
@@ -110,7 +110,7 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
             # Ack
             ch.basic_ack(delivery_tag=method.delivery_tag)
             return
-        # Else If Case did not exist before and was just  created
+        # Else If Case did not exist before and was just created
         elif (new_case.status_code == 201):
             LOG.info('Case was just created')
             # Add commnet, because Case head should conains  LAST data  overriden on any update
@@ -137,7 +137,7 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
         new_body = json.loads(str(body))
         LOG.info('Failed to sent, updating message:  \n {}  \n '.format(json.dumps(new_body, sort_keys=True, indent=4)))
 
-        # delete message if max_attempts were done
+        # Delete message if max_attempts attempts were done
         if (int(new_body['sfdc_attempts']) > max_attempts):
             LOG.info('Removing  message: sfdc_attempts = {}, max_attempts = {} '.format(new_body['sfdc_attempts'], max_attempts))
             ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -150,18 +150,17 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
             LOG.info('Removing  message: publishing_time = {}, now_time = {}, max_time = {} '.format(new_body['publishing_time'], now_time, max_time))
             ch.basic_ack(delivery_tag=method.delivery_tag)
             return
-        # if message is not too old and we have not done enouth attempts to send it, remove old and create new with attemts = attempts +1
-        # remove
+        # If message is not too old and we have not done enouth attempts to send it, 
+        # remove old and create new with attemts = attempts + 1
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
-        # publish new modified message
-
+        # Publish new modified message
         channel.basic_publish(exchange='',
                               routing_key=amqp_queue_name,
                               body=json.dumps(new_body),
                               properties=properties)
 
-        # no  sense to try again right after fail so sleep some time
+        # No sense to try again right after fail so sleep some time
         now_time = int(time.time())
         LOG.info('Starting sleep: sleep_time = {}, now = {} '.format(sleep_time, now_time))
         time.sleep(sleep_time)
@@ -176,7 +175,7 @@ def main():
     args = parser.parse_args()
 
 
-# parse config file
+# Parse config file
     with open(args.config_file) as fp:
         config = yaml.safe_load(fp)
         amqp_hosts = config['amqp_hosts'].split(',')

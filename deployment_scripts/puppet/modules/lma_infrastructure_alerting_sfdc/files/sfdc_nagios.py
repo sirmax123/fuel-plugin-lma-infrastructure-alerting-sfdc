@@ -96,7 +96,7 @@ def send_to_sfdc(nagios_data, config_file, LOG):
         LOG.info('New Caset status code: {} '.format(new_case.status_code))
         LOG.info('New Case data: {} '.format(new_case.text))
 
-        #  If Case exist
+        #  If Case exists
         if (new_case.status_code == 400) and (new_case.json()[0]['errorCode'] == 'DUPLICATE_VALUE'):
             LOG.info('Code: {}, Error message: {} '.format(new_case.status_code, new_case.text))
             # Find Case ID
@@ -115,7 +115,7 @@ def send_to_sfdc(nagios_data, config_file, LOG):
             add_feed_item = sfdc_client.create_feeditem(feeditem_data)
             LOG.info('Add FeedItem status code: {} \n Add FeedItem reply: {} '.format(add_feed_item.status_code, add_feed_item.text))
             return
-        # Else If Case did not exist before and was just  created
+        # Else If Case did not exist before and was just created
         elif (new_case.status_code == 201):
             LOG.info('Case was just created')
             # Add commnet, because Case head should conains  LAST data  overriden on any update
