@@ -17,6 +17,9 @@ from functools import partial
 import itertools
 
 
+
+
+
 def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
 
     LOG.info('Starting ... ')
