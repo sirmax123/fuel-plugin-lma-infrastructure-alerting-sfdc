@@ -248,7 +248,7 @@ def main():
             channel.basic_consume(callback, queue=amqp_queue_name)
             channel.start_consuming()
         except Exception as E:
-            LOG.info('Fauled to connect to RabbitMQ,  amqp_conn_string = {},  amqp_host = {}, amqp_port = {}, current_attempt = {} '.format(amqp_conn_string, amqp_host, amqp_port, current_attempt))
+            LOG.info('Failed to connect to RabbitMQ,  amqp_conn_string = {},  amqp_host = {}, amqp_port = {}, current_attempt = {} '.format(amqp_conn_string, amqp_host, amqp_port, current_attempt))
             LOG.info(E)
             LOG.info('Starting sleep: sleep_time = {}, now = {} '.format(sleep_time, int(time.time())))
             time.sleep(sleep_time)

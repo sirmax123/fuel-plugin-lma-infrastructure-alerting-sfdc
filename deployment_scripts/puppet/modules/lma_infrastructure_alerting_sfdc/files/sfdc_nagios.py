@@ -141,11 +141,11 @@ def main():
             LOG.info('Exiting with code = 0')
             sys.exit(0)
         except Exception as E:
-            LOG.info('Fauled to sent. max_attempts  = {}, amqp_conn_string = {},  amqp_host = {}, amqp_port = {} '.format(max_attempts, amqp_conn_string, amqp_host, amqp_port))
+            LOG.info('Failed to sent. max_attempts  = {}, amqp_conn_string = {},  amqp_host = {}, amqp_port = {} '.format(max_attempts, amqp_conn_string, amqp_host, amqp_port))
             LOG.info(E)
 
             if max_attempts <= 0:
-                LOG.info('Fauled to sent Exiting. max_attempts  = {} '.format(max_attempts))
+                LOG.info('Failed to sent Exiting. max_attempts  = {} '.format(max_attempts))
                 LOG.info('Exiting with code = 1')
                 sys.exit(1)
             else:
