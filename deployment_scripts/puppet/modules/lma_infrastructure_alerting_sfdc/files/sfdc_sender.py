@@ -215,6 +215,8 @@ def main():
     LOG.addHandler(handler)
 
     print ' [*] Waiting for messages. To exit press CTRL+C'
+    logging.getLogger("pika").setLevel(logging.INFO)
+    LOG.info(' [*] Waiting for messages. To exit press CTRL+C')
 
     sfdc_oauth2 = OAuth2(client_id=sfdc_client_id,
                          client_secret=sfdc_client_secret,
