@@ -36,6 +36,7 @@ class lma_infrastructure_alerting_sfdc (
   $plugin_config_file         =  $::lma_infrastructure_alerting_sfdc::params::plugin_config_file,
   $plugin_nagios_config_file  =  $::lma_infrastructure_alerting_sfdc::params::plugin_nagios_config_file,
   $plugin_log_file            =  $::lma_infrastructure_alerting_sfdc::params::plugin_log_file,
+  $plugin_nagios_log_file            =  $::lma_infrastructure_alerting_sfdc::params::plugin_nagios_log_file,
   $nagios_service_name        =  $::lma_infrastructure_alerting_sfdc::params::nagios_service_name,
   $nagios_contacts_file       =  $::lma_infrastructure_alerting_sfdc::params::nagios_contacts_file,
   $nagios_commands_file       =  $::lma_infrastructure_alerting_sfdc::params::nagios_commands_file,

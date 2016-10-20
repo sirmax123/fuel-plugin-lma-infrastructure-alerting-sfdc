@@ -72,12 +72,12 @@ attributes:
     regex: *not_empty_parameter
 
 
-  log_file:
-    value: '/var/log/nagios_to_sfdc.log'
-    label: 'log file name'
-    weight: 90
-    type: "text"
-    regex: *not_empty_parameter
+#  log_file:
+#    value: '/var/log/nagios_to_sfdc.log'
+#    label: 'log file name'
+#    weight: 90
+#    type: "text"
+#    regex: *not_empty_parameter
 
 
 

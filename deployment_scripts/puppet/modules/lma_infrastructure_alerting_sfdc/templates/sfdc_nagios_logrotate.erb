@@ -5,5 +5,15 @@
 	compress
 	delaycompress
 	notifempty
+	create 640 root root
+}
+
+<%= @plugin_nagios_log_file %> {
+	daily
+	missingok
+	rotate 7
+	compress
+	delaycompress
+	notifempty
 	create 640 nagios nagios
 }
