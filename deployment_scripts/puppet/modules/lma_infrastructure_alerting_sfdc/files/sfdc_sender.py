@@ -1,21 +1,20 @@
 #!/usr/bin/env python
 
-import requests
-import time
-import pika
+from argparse import ArgumentParser
+from functools import partial
+from datetime import datetime
+import dateutil.parser
+import itertools
+import json
 import logging
 import os
-import sys
-import yaml
-import json
-import socket
-import dateutil.parser
-from argparse import ArgumentParser
+import pika
+import requests
 from salesforce import OAuth2, Client
-from datetime import datetime
-from functools import partial
-import itertools
-
+import socket
+import sys
+import time
+import yaml
 
 def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
 
@@ -31,7 +30,7 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
         nagios_data = json.loads(str(body))
         LOG.info('Nagios data: \n {} \n '.format(json.dumps(nagios_data, sort_keys=True, indent=4)))
     except Exception as E:
-        # If message cn't be decoded we need to remove ot from queue and record to log.
+        # If message can't be decoded we need to remove it from queue and record to log.
         # May be need to create some spetial alert on it?
         LOG.info('Nagios data cant be decoded: \n {} \n '.format(body))
         LOG.info(E)
@@ -43,24 +42,24 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
     }
 
 # If affected_host is defined, use it for hostname,
-# otherwise use host_name, which is usually 'glogal'
+# otherwise use host_name, which is usually 'global'
 
     Alert_ID = environment
     Subject = ''
 
-    if nagios_data['service_description'] != '':
+    if nagios_data['service_description']:
         Alert_ID = '{}--{}'.format(Alert_ID, nagios_data['service_description'])
         Subject = nagios_data['service_description']
         payload['service'] = nagios_data['service_description']
 
-    if nagios_data['affected_hosts'] != []:
+    if nagios_data['affected_hosts']:
         Subject = '{}  {}'.format(Subject, nagios_data['affected_hosts'][0])
     else:
         Subject = '{}  {}'.format(Subject, nagios_data['host_name'])
 
     Alert_ID = '{}--{}'.format(Alert_ID, nagios_data['host_name'])
 
-    if nagios_data['long_service_output'] != '':
+    if nagios_data['long_service_output']:
         payload['description'] = nagios_data['long_service_output']
 
     alert_data = {

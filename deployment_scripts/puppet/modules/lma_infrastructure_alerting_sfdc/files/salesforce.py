@@ -1,10 +1,10 @@
-import requests
 import json
-import xml.dom.minidom
 import logging
+import requests
 import urllib3
-urllib3.disable_warnings()
+import xml.dom.minidom
 
+urllib3.disable_warnings()
 LOG = logging.getLogger()
 
 

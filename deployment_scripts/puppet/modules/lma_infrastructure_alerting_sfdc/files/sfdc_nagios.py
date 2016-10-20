@@ -1,21 +1,21 @@
 #!/usr/bin/python
 
-import urllib3
-import logging
-import os
-import sys
-import yaml
-import json
-import socket
-import dateutil.parser
 from argparse import ArgumentParser
 from datetime import datetime
-from salesforce import OAuth2, Client
+import dateutil.parser
+import itertools
+import json
+import logging
+import os
 import pika
 import re
-import time
-import itertools
 import requests
+from salesforce import OAuth2, Client
+import socket
+import sys
+import time
+import urllib3
+import yaml
 
 urllib3.disable_warnings()
 LOG = None
@@ -55,19 +55,19 @@ def send_to_sfdc(nagios_data, config_file, LOG):
     Alert_ID = environment
     Subject = ''
 
-    if nagios_data['service_description'] != '':
+    if nagios_data['service_description']:
         Alert_ID = '{}--{}'.format(Alert_ID, nagios_data['service_description'])
         Subject = nagios_data['service_description']
         payload['service'] = nagios_data['service_description']
 
-    if nagios_data['affected_hosts'] != []:
+    if nagios_data['affected_hosts']:
         Subject = '{}  {}'.format(Subject, nagios_data['affected_hosts'][0])
     else:
         Subject = '{}  {}'.format(Subject, nagios_data['host_name'])
 
     Alert_ID = '{}--{}'.format(Alert_ID, nagios_data['host_name'])
 
-    if nagios_data['long_service_output'] != '':
+    if nagios_data['long_service_output']:
         payload['description'] = nagios_data['long_service_output']
 
     alert_data = {
