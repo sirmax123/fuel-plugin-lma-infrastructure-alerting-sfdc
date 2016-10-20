@@ -59,6 +59,8 @@ def main():
     handler.setFormatter(formatter)
     LOG.setLevel(log_level)
     LOG.addHandler(handler)
+    
+    logging.getLogger("pika").setLevel(logging.INFO)
 
 # parse config file
     with open(args.config_file) as fp:
