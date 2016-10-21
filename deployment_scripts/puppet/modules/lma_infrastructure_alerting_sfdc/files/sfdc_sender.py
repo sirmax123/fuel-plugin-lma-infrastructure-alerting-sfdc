@@ -99,6 +99,7 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
             # Find Case ID
             ExistingCaseId = new_case.json()[0]['message'].split(' ')[-1]
 
+            current_case = sfdc_client.get_case(ExistingCaseId).json()
             LOG.info("Existing Case: \n {}".format(json.dumps(current_case, sort_keys=True, indent=4)))
             ExistingCaseStatus = current_case['Status']
             feed_data_body['Status'] = ExistingCaseStatus
