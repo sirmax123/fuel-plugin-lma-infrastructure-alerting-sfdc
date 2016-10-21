@@ -103,6 +103,15 @@ def send_to_sfdc(nagios_data, config_file, LOG):
             # Find Case ID
             ExistingCaseId = new_case.json()[0]['message'].split(' ')[-1]
 
+
+            LOG.info('ExistingCaseId: {} '.format(ExistingCaseId))
+            # Get Case 
+            current_case = sfdc_client.get_case(ExistingCaseId).json()
+            LOG.info("Existing Case: \n {}".format(json.dumps(current_case,sort_keys=True, indent=4)))
+            ExistingCaseStatus=current_case['Status']
+       
+            feed_data_body['Status'] = ExistingCaseStatus
+            
             u = sfdc_client.update_case(id=ExistingCaseId, data=alert_data)
             LOG.info('Upate status code: {} '.format(u.status_code))
 
