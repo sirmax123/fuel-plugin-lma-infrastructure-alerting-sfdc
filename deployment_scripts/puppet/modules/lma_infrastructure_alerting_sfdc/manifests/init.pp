@@ -46,6 +46,7 @@ class lma_infrastructure_alerting_sfdc (
 
   notify {'lma_infrastructure_alerting_sfdc start': }
 
+
   validate_string($auth_url,
                   $client_id,
                   $client_secret,
@@ -76,6 +77,11 @@ class lma_infrastructure_alerting_sfdc (
       ensure => running,
       enable => true,
     }
+
+  exec {'restart_nagios':
+    command => '/usr/sbin/crm resource restart nagios3',
+    refreshonly => true,
+  }
 
   $files = {
     "${plugin_dir}" => {
@@ -124,7 +130,8 @@ class lma_infrastructure_alerting_sfdc (
     owner => 'nagios',
     group => 'nagios',
     mode  => '0644',
-    notify => Service[$nagios_service_name],
+    notify  => Exec['restart_nagios'],
+
   }
 
   create_resources(file, $files, $file_defaults)
