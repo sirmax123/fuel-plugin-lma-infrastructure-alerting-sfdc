@@ -16,6 +16,7 @@ import sys
 import time
 import yaml
 
+
 def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
 
     LOG.info('Starting ... ')
@@ -57,7 +58,6 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
     if nagios_data['affected_hosts']:
         Subject = '{}  {}'.format(Subject, nagios_data['affected_hosts'][0])
         payload['affected_hosts'] = nagios_data['affected_hosts']
-        
     else:
         Subject = '{}  {}'.format(Subject, nagios_data['host_name'])
 
@@ -98,6 +98,10 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
             LOG.info('Code: {}, Error message: {} '.format(new_case.status_code, new_case.text))
             # Find Case ID
             ExistingCaseId = new_case.json()[0]['message'].split(' ')[-1]
+
+            LOG.info("Existing Case: \n {}".format(json.dumps(current_case, sort_keys=True, indent=4)))
+            ExistingCaseStatus = current_case['Status']
+            feed_data_body['Status'] = ExistingCaseStatus
 
             u = sfdc_client.update_case(id=ExistingCaseId, data=alert_data)
             LOG.info('Upate status code: {} '.format(u.status_code))
@@ -154,7 +158,7 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
             LOG.info('Removing  message: publishing_time = {}, now_time = {}, max_time = {} '.format(new_body['publishing_time'], now_time, max_time))
             ch.basic_ack(delivery_tag=method.delivery_tag)
             return
-        # If message is not too old and we have not done enouth attempts to send it, 
+        # If message is not too old and we have not done enouth attempts to send it,
         # remove old and create new with attemts = attempts + 1
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
