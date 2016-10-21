@@ -52,8 +52,12 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
         Subject = nagios_data['service_description']
         payload['service'] = nagios_data['service_description']
 
+    Subject = '{} {}'.format(Subject, nagios_data['affected_hosts'][0] if nagios_data['affected_hosts'] else nagios_data['host_name'])
+
     if nagios_data['affected_hosts']:
         Subject = '{}  {}'.format(Subject, nagios_data['affected_hosts'][0])
+        payload['affected_hosts'] = nagios_data['affected_hosts']
+        
     else:
         Subject = '{}  {}'.format(Subject, nagios_data['host_name'])
 

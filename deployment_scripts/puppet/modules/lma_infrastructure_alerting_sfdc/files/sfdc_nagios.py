@@ -62,6 +62,7 @@ def send_to_sfdc(nagios_data, config_file, LOG):
 
     if nagios_data['affected_hosts']:
         Subject = '{}  {}'.format(Subject, nagios_data['affected_hosts'][0])
+        payload['affected_hosts'] = nagios_data['affected_hosts']
     else:
         Subject = '{}  {}'.format(Subject, nagios_data['host_name'])
 
