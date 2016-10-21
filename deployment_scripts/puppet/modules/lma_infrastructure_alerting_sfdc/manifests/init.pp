@@ -26,7 +26,6 @@ class lma_infrastructure_alerting_sfdc (
   $amqp_user,
   $amqp_password,
   $host_regexp,
-  $log_file,
   $max_time,
   $max_attempts,
   $sleep_time,
@@ -47,8 +46,8 @@ class lma_infrastructure_alerting_sfdc (
 
   notify {'lma_infrastructure_alerting_sfdc start': }
 
-  validate_string($auth_url, 
-                  $client_id, 
+  validate_string($auth_url,
+                  $client_id,
                   $client_secret,
                   $username,
                   $password,
@@ -59,7 +58,6 @@ class lma_infrastructure_alerting_sfdc (
                   $amqp_password,
                   $amqp_queue_name,
                   $host_regexp,
-                  $log_file,
                   $max_time,
                   $max_attempts,
                   $sleep_time,
@@ -74,10 +72,10 @@ class lma_infrastructure_alerting_sfdc (
                   $nagios_commands_file,
                   $logrotate_config)
 
-#  service { "${nagios_service_name}":
-#      ensure => running,
-#      enable => true,
-#    }
+  service { "${nagios_service_name}":
+      ensure => running,
+      enable => true,
+    }
 
   $files = {
     "${plugin_dir}" => {
@@ -107,6 +105,10 @@ class lma_infrastructure_alerting_sfdc (
     },
     "${plugin_log_file}" => {
     },
+    "${plugin_nagios_log_file}" => {
+      owner => nagios,
+      group => nagios,
+    },
     "${nagios_commands_file}" => {
       content => template('lma_infrastructure_alerting_sfdc/sfdc_commands.cfg.erb'),
     },
@@ -122,7 +124,7 @@ class lma_infrastructure_alerting_sfdc (
     owner => 'nagios',
     group => 'nagios',
     mode  => '0644',
-#    notify => Service[$nagios_service_name],
+    notify => Service[$nagios_service_name],
   }
 
   create_resources(file, $files, $file_defaults)
