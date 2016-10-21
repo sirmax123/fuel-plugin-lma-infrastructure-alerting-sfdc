@@ -37,8 +37,8 @@ define command{
                                --state "$SERVICESTATE$" \
                                --debug \
                                --log_file "<%= @plugin_nagios_log_file %>" \
-                               --service_output "${SERVICEOUTPUT}" \
-                               --long_service_output "${LONGSERVICEOUTPUT}"
+                               --service_output "$SERVICEOUTPUT$" \
+                               --long_service_output "$LONGSERVICEOUTPUT$"
         }
 
 define command{

@@ -175,7 +175,8 @@ def main():
     LOG.addHandler(handler)
 
     logging.getLogger("pika").setLevel(logging.INFO)
-
+    LOG.info('Args = {} '.format(args))
+    
 # parse config file
     with open(args.config_file) as fp:
         config = yaml.safe_load(fp)
