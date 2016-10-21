@@ -27,7 +27,7 @@ class lma_infrastructure_alerting_sfdc::params {
   $nagios_contacts_file       =  '/etc/nagios3/conf.d/sfdc_contacts.cfg'
   $nagios_commands_file       =  '/etc/nagios3/conf.d/sfdc_commands.cfg'
   $logrotate_config           =  '/etc/logrotate.d/sfdc_nagios'
-  $packages                   =  [ 'python-pika' ]
+  $packages                   =  [ 'python-pika', 'python-dateutil' ]
   $queue_name                 =  'sfdc_queue'
 }
 
