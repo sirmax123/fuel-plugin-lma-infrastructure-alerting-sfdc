@@ -174,7 +174,7 @@ def main():
     LOG.setLevel(log_level)
     LOG.addHandler(handler)
 
-    logging.getLogger("pika").setLevel(logging.INFO)
+    logging.getLogger("pika").setLevel(logging.CRITICAL)
     LOG.info('Args = {} '.format(args))
     
 # parse config file

@@ -215,7 +215,7 @@ def main():
     LOG.setLevel(log_level)
     LOG.addHandler(handler)
 
-    logging.getLogger("pika").setLevel(logging.INFO)
+    logging.getLogger("pika").setLevel(logging.CRITICAL)
     LOG.info(' [*] Waiting for messages. To exit press CTRL+C')
     print ' [*] Waiting for messages. To exit press CTRL+C'
 
