@@ -8,5 +8,5 @@
   compatible: []
   requires: []
   incompatible: []
-  label: "Plugin label, that will be shown on UI"
-  description: "Component description (optional)"
+  label: "Plugin adds SFDC notification support to the StackLight"
+  description: ""
