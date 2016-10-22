@@ -92,14 +92,14 @@ attributes:
 
 
   max_attempts:
-    value: '10'
+    value: '100'
     label: 'Max number of attempts to create object in SFDC'
     weight: 90
     type: "text"
     regex: *not_empty_parameter
 
   sleep_time:
-    value: '30'
+    value: '5'
     label: 'Timeout between retrys'
     weight: 90
     type: "text"
