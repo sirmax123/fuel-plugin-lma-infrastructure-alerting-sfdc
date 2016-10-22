@@ -12,7 +12,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 #
-#
 
 class lma_infrastructure_alerting_sfdc (
   $auth_url,
@@ -35,7 +34,7 @@ class lma_infrastructure_alerting_sfdc (
   $plugin_config_file         =  $::lma_infrastructure_alerting_sfdc::params::plugin_config_file,
   $plugin_nagios_config_file  =  $::lma_infrastructure_alerting_sfdc::params::plugin_nagios_config_file,
   $plugin_log_file            =  $::lma_infrastructure_alerting_sfdc::params::plugin_log_file,
-  $plugin_nagios_log_file            =  $::lma_infrastructure_alerting_sfdc::params::plugin_nagios_log_file,
+  $plugin_nagios_log_file     =  $::lma_infrastructure_alerting_sfdc::params::plugin_nagios_log_file,
   $nagios_service_name        =  $::lma_infrastructure_alerting_sfdc::params::nagios_service_name,
   $nagios_contacts_file       =  $::lma_infrastructure_alerting_sfdc::params::nagios_contacts_file,
   $nagios_commands_file       =  $::lma_infrastructure_alerting_sfdc::params::nagios_commands_file,
@@ -73,13 +72,12 @@ class lma_infrastructure_alerting_sfdc (
                   $nagios_commands_file,
                   $logrotate_config)
 
-  service { "${nagios_service_name}":
-      ensure => running,
-      enable => true,
-    }
-
+### hacky way, but classes from other plugins are not accessable
+### so I do not know how to use correct class and restart like alerting plugin do.
+### if you know it please contact me: sirmax123@gmail.com
+###
   exec {'restart_nagios':
-    command => '/usr/sbin/crm resource restart nagios3',
+    command => "/usr/sbin/crm resource restart $nagios_service_name",
     refreshonly => true,
   }
 

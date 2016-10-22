@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# MANAGED BY PUPPET
+# PART OF SFDC FUEL PLUGIN
+
 LONGDATETIME=`date`
 
 IP_ADDRESS=`/sbin/ip ro get 8.8.8.8 |  awk '(/src/) { print $7}'`

@@ -8,7 +8,7 @@ attributes:
 
   sfdc_client_id:
     value: ''
-    label: 'SalesForce Client ID. Should be provided by SFDC administartors, looks like long random string. (Example of SFDC Client ID: 3MVG9Z8h6S4Gr6GHqE6yb1wKRc1j7KKpgAgwDFTuvsTdS9VrhJRwv2.qjPb6dhC5v4UP5BMEKbE9zkMA_5XB)'
+    label: 'SalesForce Client ID. Should be provided by SFDC administartors, looks like long random string. ( Example of SFDC Client ID: 3MVG ...  )'
     weight: 60
     type: "text"
     regex: &not_empty_parameter
