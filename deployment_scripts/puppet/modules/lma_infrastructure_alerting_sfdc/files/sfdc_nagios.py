@@ -29,8 +29,8 @@ def send_to_sfdc(nagios_data, config_file, LOG):
         amqp_password = config['amqp_password']
         amqp_queue_name = config['amqp_queue_name']
         host_regexp = config['host_regexp']
-        max_attempts = int(config['max_attempts'])
-        sleep_time = int(config['sleep_time'])
+        max_attempts = int(config['max_attempts_rabbit'])
+        sleep_time = int(config['sleep_time_rabbit'])
         environment = config['environment']
         sfdc_client_id = config['sfdc_client_id']
         sfdc_client_secret = config['sfdc_client_secret']
