@@ -23,6 +23,7 @@ class lma_infrastructure_alerting_sfdc::params {
   $plugin_nagios_config_file  =  '/etc/nagios3/conf.d/sfdc_commands.cfg'
   $plugin_log_file            =  '/var/log/nagios_to_sfdc.log'
   $plugin_nagios_log_file     =  '/var/log/nagios_sfdc_command.log'
+  $plugin_nagios_debug_file   =  '/var/log/nagios_sfdc_command.log.debug'
   $nagios_service_name        =  'nagios3'
   $nagios_contacts_file       =  '/etc/nagios3/conf.d/sfdc_contacts.cfg'
   $nagios_commands_file       =  '/etc/nagios3/conf.d/sfdc_commands.cfg'

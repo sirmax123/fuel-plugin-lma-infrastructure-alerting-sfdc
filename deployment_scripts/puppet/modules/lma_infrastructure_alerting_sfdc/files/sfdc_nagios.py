@@ -146,8 +146,7 @@ def send_to_sfdc(nagios_data, config_file, LOG):
         LOG.info(E)
 
         LOG.info('Unexpected error: Case was not created (code !=201) and Case does not exist (code != 400) or connection error')
-        new_body = json.loads(str(body))
-        LOG.info('Failed to sent, updating message:  \n {}  \n '.format(json.dumps(new_body, sort_keys=True, indent=4)))
+        LOG.info('Failed to sent, updating message.')
 
 
 def main():
@@ -186,8 +185,8 @@ def main():
         amqp_password = config['amqp_password']
         amqp_queue_name = config['amqp_queue_name']
         host_regexp = config['host_regexp']
-        max_attempts = int(config['max_attempts'])
-        sleep_time = int(config['sleep_time'])
+        max_attempts = int(config['max_attempts_rabbit'])
+        sleep_time = int(config['sleep_time_rabbit'])
         environment = config['environment']
         sfdc_client_id = config['sfdc_client_id']
         sfdc_client_secret = config['sfdc_client_secret']
