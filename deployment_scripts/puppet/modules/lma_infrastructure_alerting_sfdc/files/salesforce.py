@@ -8,6 +8,111 @@ urllib3.disable_warnings()
 LOG = logging.getLogger()
 
 
+def send_to_sfdc(nagios_data, sfdc_client, environment):
+
+    LOG.info('Starting sendig to SFDC... ')
+
+    payload = {
+        'long_date_time':    nagios_data['long_date_time']
+    }
+
+# If affected_host is defined, use it for hostname,
+# otherwise use host_name, which is usually 'global-...'
+    Alert_ID = environment
+    Subject = ''
+
+    if nagios_data['service_description']:
+        Alert_ID = '{}--{}'.format(Alert_ID, nagios_data['service_description'])
+        Subject = nagios_data['service_description']
+        payload['service'] = nagios_data['service_description']
+
+    if nagios_data['affected_hosts']:
+        Subject = '{}  {}'.format(Subject, ' '.join(nagios_data['affected_hosts']))
+        payload['affected_hosts'] = nagios_data['affected_hosts']
+    else:
+        Subject = '{}  {}'.format(Subject, nagios_data['host_name'])
+
+    Alert_ID = '{}--{}'.format(Alert_ID, nagios_data['host_name'])
+
+    if nagios_data['long_service_output']:
+        payload['description'] = nagios_data['long_service_output']
+
+    alert_data = {
+        'IsMosAlert__c':     'true',
+        'Description':       json.dumps(payload, sort_keys=True, indent=4),
+        'Alert_ID__c':       Alert_ID,
+        'Subject':           Subject,
+        'Environment2__c':   environment,
+        'Alert_Priority__c': nagios_data['state'],
+        'Alert_Host__c':     nagios_data['host_name'],
+        'Alert_Service__c':  nagios_data['service_description']
+        }
+
+    feed_data_body = {
+        'Description':    json.dumps(payload, sort_keys=True, indent=4),
+        'Alert_Id':       Alert_ID,
+        'Cloud_ID':       environment,
+        'Alert_Priority': nagios_data['state'],
+        'Status':         'New',
+        }
+
+    LOG.info('Alert Data:\n{}\n'.format(json.dumps(alert_data, sort_keys=True, indent=4)))
+
+    try:
+        new_case = sfdc_client.create_case(alert_data)
+
+        LOG.info('New Caset status code: {} '.format(new_case.status_code))
+        LOG.info('New Case data: {} '.format(new_case.text))
+
+        #  If Case exist
+        if (new_case.status_code == 400) and (new_case.json()[0]['errorCode'] == 'DUPLICATE_VALUE'):
+            LOG.info('Code: {}, Error message: {} '.format(new_case.status_code, new_case.text))
+            # Find Case ID
+            ExistingCaseId = new_case.json()[0]['message'].split(' ')[-1]
+
+            current_case = sfdc_client.get_case(ExistingCaseId).json()
+            LOG.info("Existing Case: \n {}".format(json.dumps(current_case, sort_keys=True, indent=4)))
+            ExistingCaseStatus = current_case['Status']
+            feed_data_body['Status'] = ExistingCaseStatus
+            alert_data['Subject'] = current_case['Subject']
+
+            u = sfdc_client.update_case(id=ExistingCaseId, data=alert_data)
+            LOG.info('Upate status code: {} '.format(u.status_code))
+
+            feeditem_data = {
+                    'ParentId':    ExistingCaseId,
+                    'Visibility': 'AllUsers',
+                    'Body':        json.dumps(feed_data_body, sort_keys=True, indent=4)
+            }
+
+            LOG.info('FeedItem Data: {}'.format(json.dumps(feeditem_data, sort_keys=True, indent=4)))
+            add_feed_item = sfdc_client.create_feeditem(feeditem_data)
+            LOG.info('Add FeedItem status code: {} \n Add FeedItem reply: {} '.format(add_feed_item.status_code, add_feed_item.text))
+            return True
+        # Else If Case did not exist before and was just created
+        elif (new_case.status_code == 201):
+            LOG.info('Case was just created')
+            # Add commnet, because Case head should conains  LAST data  overriden on any update
+            CaseId = new_case.json()['id']
+            feeditem_data = {
+               'ParentId':   CaseId,
+               'Visibility': 'AllUsers',
+               'Body': json.dumps(feed_data_body, sort_keys=True, indent=4),
+            }
+            LOG.info('FeedItem Data: {}'.format(json.dumps(feeditem_data, sort_keys=True, indent=4)))
+            add_feed_item = sfdc_client.create_feeditem(feeditem_data)
+            LOG.info('Add FeedItem status code: {} \n Add FeedItem reply: {} '.format(add_feed_item.status_code, add_feed_item.text))
+            return True
+        else:
+            LOG.info('Unexpected error: Case was not created (code != 201) and Case does not exist (code != 400)')
+            return False
+
+    except requests.exceptions.ConnectionError as e:
+        LOG.info(e)
+        LOG.info('Unexpected error: Case was not created: Connection error.')
+        return False
+
+
 class OAuth2(object):
     def __init__(self, client_id, client_secret, username, password, auth_url=None, organizationId=None):
         if not auth_url:
