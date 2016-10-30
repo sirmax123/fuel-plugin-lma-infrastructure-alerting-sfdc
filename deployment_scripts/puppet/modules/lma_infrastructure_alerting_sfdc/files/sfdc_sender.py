@@ -10,14 +10,14 @@ import logging
 import os
 import pika
 import requests
-from salesforce import OAuth2, Client
+from salesforce import OAuth2, Client, send_to_sfdc
 import socket
 import sys
 import time
 import yaml
 
 
-def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
+def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel=None):
 
     LOG.info('Starting ... ')
     environment = config['environment']
@@ -25,7 +25,6 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
     max_attempts = int(config['max_attempts'])
     sleep_time = int(config['sleep_time'])
     amqp_queue_name = config['amqp_queue_name']
-
 # Try to decode message
     try:
         nagios_data = json.loads(str(body))
@@ -38,143 +37,41 @@ def callback2(ch, method, properties, body, config, LOG, sfdc_client, channel):
         ch.basic_ack(delivery_tag=method.delivery_tag)
         return None
 
-    payload = {
-        'long_date_time':    nagios_data['long_date_time']
-    }
-
-# If affected_host is defined, use it for hostname,
-# otherwise use host_name, which is usually 'global-...'
-
-    Alert_ID = environment
-    Subject = ''
-
-    if nagios_data['service_description']:
-        Alert_ID = '{}--{}'.format(Alert_ID, nagios_data['service_description'])
-        Subject = nagios_data['service_description']
-        payload['service'] = nagios_data['service_description']
-
-
-    if nagios_data['affected_hosts']:
-        Subject = '{}  {}'.format(Subject, ' '.join(nagios_data['affected_hosts']))
-        payload['affected_hosts'] = nagios_data['affected_hosts']
-    else:
-        Subject = '{}  {}'.format(Subject, nagios_data['host_name'])
-
-    Alert_ID = '{}--{}'.format(Alert_ID, nagios_data['host_name'])
-
-    if nagios_data['long_service_output']:
-        payload['description'] = nagios_data['long_service_output']
-
-    alert_data = {
-        'IsMosAlert__c':     'true',
-        'Description':       json.dumps(payload, sort_keys=True, indent=4),
-        'Alert_ID__c':       Alert_ID,
-        'Subject':           Subject,
-        'Environment2__c':   environment,
-        'Alert_Priority__c': nagios_data['state'],
-        'Alert_Host__c':     nagios_data['host_name'],
-        'Alert_Service__c':  nagios_data['service_description']
-        }
-
-    feed_data_body = {
-        'Description':    json.dumps(payload, sort_keys=True, indent=4),
-        'Alert_Id':       Alert_ID,
-        'Cloud_ID':       environment,
-        'Alert_Priority': nagios_data['state'],
-        'Status':         'New',
-        }
-
-    LOG.info(json.dumps(alert_data, sort_keys=True, indent=4))
-
-    try:
-        new_case = sfdc_client.create_case(alert_data)
-
-        LOG.info('New Caset status code: {} '.format(new_case.status_code))
-        LOG.info('New Case data: {} '.format(new_case.text))
-
-        #  If Case exist
-        if (new_case.status_code == 400) and (new_case.json()[0]['errorCode'] == 'DUPLICATE_VALUE'):
-            LOG.info('Code: {}, Error message: {} '.format(new_case.status_code, new_case.text))
-            # Find Case ID
-            ExistingCaseId = new_case.json()[0]['message'].split(' ')[-1]
-
-            current_case = sfdc_client.get_case(ExistingCaseId).json()
-            LOG.info("Existing Case: \n {}".format(json.dumps(current_case, sort_keys=True, indent=4)))
-            ExistingCaseStatus = current_case['Status']
-            feed_data_body['Status'] = ExistingCaseStatus
-            alert_data['Subject'] = current_case['Subject']
-            
-            u = sfdc_client.update_case(id=ExistingCaseId, data=alert_data)
-            LOG.info('Upate status code: {} '.format(u.status_code))
-
-            feeditem_data = {
-                    'ParentId':    ExistingCaseId,
-                    'Visibility': 'AllUsers',
-                    'Body':        json.dumps(feed_data_body, sort_keys=True, indent=4)
-            }
-
-            LOG.info('FeedItem Data: {}'.format(json.dumps(feeditem_data, sort_keys=True, indent=4)))
-            add_feed_item = sfdc_client.create_feeditem(feeditem_data)
-            LOG.info('Add FeedItem status code: {} \n Add FeedItem reply: {} '.format(add_feed_item.status_code, add_feed_item.text))
-            # Ack
-            ch.basic_ack(delivery_tag=method.delivery_tag)
-            return
-        # Else If Case did not exist before and was just created
-        elif (new_case.status_code == 201):
-            LOG.info('Case was just created')
-            # Add commnet, because Case head should conains  LAST data  overriden on any update
-            CaseId = new_case.json()['id']
-            feeditem_data = {
-               'ParentId':   CaseId,
-               'Visibility': 'AllUsers',
-               'Body': json.dumps(feed_data_body, sort_keys=True, indent=4),
-            }
-            LOG.info('FeedItem Data: {}'.format(json.dumps(feeditem_data, sort_keys=True, indent=4)))
-            add_feed_item = sfdc_client.create_feeditem(feeditem_data)
-            LOG.info('Add FeedItem status code: {} \n Add FeedItem reply: {} '.format(add_feed_item.status_code, add_feed_item.text))
-            # Ack
-            ch.basic_ack(delivery_tag=method.delivery_tag)
-            return
-        else:
-            LOG.info('Unexpected error: Case was not created (code !=201) and Case does not exist (code != 400), raising exeption!')
-            raise requests.exceptions.ConnectionError
-
-    except requests.exceptions.ConnectionError as E:
-        LOG.info(E)
-
-        LOG.info('Unexpected error: Case was not created (code !=201) and Case does not exist (code != 400) or connection error')
-        new_body = json.loads(str(body))
-        LOG.info('Failed to sent, updating message:  \n {}  \n '.format(json.dumps(new_body, sort_keys=True, indent=4)))
-
-        # Delete message if max_attempts attempts were done
-        if (int(new_body['sfdc_attempts']) > max_attempts):
-            LOG.info('Removing  message: sfdc_attempts = {}, max_attempts = {} '.format(new_body['sfdc_attempts'], max_attempts))
-            ch.basic_ack(delivery_tag=method.delivery_tag)
-            return
-        else:
-            new_body['sfdc_attempts'] = str(int(new_body['sfdc_attempts']) + 1)
-
-        now_time = int(time.time())
-        if (now_time - int(new_body['publishing_time']) > max_time):
-            LOG.info('Removing  message: publishing_time = {}, now_time = {}, max_time = {} '.format(new_body['publishing_time'], now_time, max_time))
-            ch.basic_ack(delivery_tag=method.delivery_tag)
-            return
-        # If message is not too old and we have not done enouth attempts to send it,
-        # remove old and create new with attemts = attempts + 1
+    if send_to_sfdc(nagios_data=nagios_data, sfdc_client=sfdc_client, environment=environment):
+        # Sent to SFDC w/o errors, remove from queue
+        LOG.info('Message was sent, nagios data":  \n{}  \n '.format(json.dumps(nagios_data, sort_keys=True, indent=4)))
         ch.basic_ack(delivery_tag=method.delivery_tag)
+    else:
+        # was not sent
+        LOG.info('Failed to sent, updating message:  \n{}  \n '.format(json.dumps(nagios_data, sort_keys=True, indent=4)))
+        # Delete message if max_attempts attempts were done
+        if (int(nagios_data['sfdc_attempts']) > max_attempts):
+            LOG.info('Removing  message: sfdc_attempts = {}, max_attempts = {} '.format(nagios_data['sfdc_attempts'], max_attempts))
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+            return
+        elif (int(time.time()) - int(nagios_data['publishing_time']) > max_time):
+            LOG.info('Removing  message: publishing_time = {}, now_time = {}, max_time = {} '.format(nagios_data['publishing_time'], int(time.time()), max_time))
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+            return
+        else:
+            nagios_data['sfdc_attempts'] = str(int(nagios_data['sfdc_attempts']) + 1)
 
-        # Publish new modified message
-        channel.basic_publish(exchange='',
-                              routing_key=amqp_queue_name,
-                              body=json.dumps(new_body),
-                              properties=properties)
+            # If message is not too old and we have not done enouth attempts to send it,
+            # remove old and create new with attemts = attempts + 1
+            ch.basic_ack(delivery_tag=method.delivery_tag)
 
-        # No sense to try again right after fail so sleep some time
-        now_time = int(time.time())
-        LOG.info('Starting sleep: sleep_time = {}, now = {} '.format(sleep_time, now_time))
-        time.sleep(sleep_time)
-        now_time = int(time.time())
-        LOG.info('Sleep Finished: sleep_time = {}, now = {} '.format(sleep_time, now_time))
+            # Publish new modified message
+            channel.basic_publish(exchange='',
+                                  routing_key=amqp_queue_name,
+                                  body=json.dumps(nagios_data),
+                                  properties=properties)
+
+            # No sense to try again right after fail so sleep some time
+            now_time = int(time.time())
+            LOG.info('Starting sleep: sleep_time = {}, now = {} '.format(sleep_time, now_time))
+            time.sleep(sleep_time)
+            now_time = int(time.time())
+            LOG.info('Sleep Finished: sleep_time = {}, now = {} '.format(sleep_time, now_time))
 
 
 def main():
